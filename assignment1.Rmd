@@ -45,8 +45,8 @@ According to R help, SVD has slightly better numerical accuracy. Therefore, prco
 PCA explained?
 ```{r}
 
-prin_comp <- prcomp(sub_drugs, scale = TRUE)
-summary(prin_comp)
+pr.out <- prcomp(sub_drugs, scale = TRUE)
+summary(pr.out)
 ```
 
 
@@ -63,27 +63,71 @@ of the distribution of the ith largest eigenvalue of the random
 data (same idea as the previous rule but taking random variation
 into account) 
 
+
 ```{r}
-library(factoextra)
-explained_var <-round(((prin_comp$sdev)^2)/sum((prin_comp$sdev)^2),4)
-plot(prin_comp$sdev^2)
-plot(explained_var, xlab = "Principal Component",
-     ylab = "Proportion of Variance Explained",
-     type = "b")
-plot(cumsum(explained_var), xlab = "Principal Component", ylab = "Cumulative Variance", type="b")
-
-res <- get_pca_ind(prin_comp)
-res$contrib
-
+# Eigenvalues
+eval <- pr.out$sdev^2
+# First two eigenvalues are bigger than one
 ```
-\section{4. Interpretation}
-```{r}
-library(ggbiplot)
-library(scales)
-library(plyr)
 
-ggbiplot(prin_comp)
-ggbiplot(prin_comp, choices = c(3,4))
+
+```{r}
+# Eigenvectors
+evec <- pr.out$rotation
+```
+
+
+```{r}
+# Standard deviations and proportion of variance
+summary(pr.out)
+# First two principal components explain 69.34% of the variance
+```
+
+
+
+```{r}
+# Scree Plot
+par(mfrow = c(1,2))
+plot(eval, xlab = "Principal Component", ylab = "Eigenvalue",
+     type = "b", main = "Scree Plot")
+```
+
+```{r}
+# Variance Explained Plot
+prop_varex <- eval / sum(eval)
+plot(prop_varex, xlab = "Principal Component", ylab = "Proportion of varianve explained",
+     type = "b", main = "Variance Explained", ylim = c(0,1))
+lines(cumsum(prop_varex), type = "b", lty = 3)
+par(mfrow = c(1,1))
+```
+
+
+\section{4. Interpretation}
+
+```{r}
+# Correlation coefficients between PC's and initial variables
+varnames <- names(drugs)[2:ncol(drugs)]
+corrcoef <- matrix(nrow = 2, ncol = ncol(drugs)-1, byrow = T)
+colnames(corrcoef) <- varnames
+rownames(corrcoef) <- c("PC1", "PC2")
+
+for( n in 1:length(rownames(corrcoef)) ){
+  for( m in 1:nrow(evec) ){
+    corrcoef[n,m] <- evec[m,n] * sqrt(eval)[n]
+  }
+}
+corrcoef
+
+# First principal component is significantly negatively correlated
+# with all variables
+# Second component discriminates between L2000, L4000, R2000, R4000 on one hand
+# (high dose) and L500, L1000, R500 and R1000 on the other hand (low dose)
+```
+
+
+```{r}
+biplot(pr.out)
+biplot(pr.out, choices = c(3,4))
 
 ```
 
@@ -91,6 +135,10 @@ first plot shows two groupings of dosage amount independant of the drug
 
 second plot barely shows any relevant information as there is barely any group seperation
 -> was to be expected since they explain small portion of the variance only 
+
+For the majority of the patients, both drugs had barely any effect on the percentage
+drop. Lower dose seems to be more effective compared to higher dose, as with a lower
+dose more patients had a percentage drop.
 
 
 \section{1. Problem Statement Task 2:} 
@@ -102,7 +150,7 @@ correlations
 tics and physics exams can be explained because they all measure
 somehow quantitative intelligence
 
-```
+
 1. State the problem
 
 2. Descriptive Statistics (to check data, to find outliers)
@@ -116,7 +164,7 @@ somehow quantitative intelligence
 6. Compare the results briefly with alternative solutions, if any
 
 7. Conclusion
-```
+
 
 ```{r setup, include=FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
@@ -145,85 +193,49 @@ corr <- makeSymm(corr)
 \section{Assumptions of Methods}
 assuming standardized data and factors + uncorrelated factors
 
+```{r}
+# Perform Kaiser's MSA to evaluate appropriateness of data
+KMO(corr)
+# Kaiser MSA = 0.95 > 0.8 --> appropriate data
+```
+
 \section{Method}
 
-compute eigenvalues and check how many factors should be extracted
 ```{r}
-eigenvalues <- eigen(corr)$values
-plot(eigenvalues)
+# Define the amount of factors
+eval <- eigen(corr)$values
+plot(eval, xlab = "Principal Component", ylab = "Eigenvalue",
+     type = "b", main = "Scree Plot")
+# Choose 2 factors
 
-```
-seems like the first component would be sufficient
+# CHECK USING HORNS
 
-```{r}
-# set chosen number of factors
-n <- 2
-n_var <- 20
-
-corr_smc <- (1 - 1 / diag(solve(corr)))
-diag(corr) <- corr_smc
-
-min.error <- .001
-com.iter <- c()
-h2 <- sum(diag(solve(corr)))
-error <- h2
-
-corr_eigen <- eigen(corr) # Get the eigenvalues and eigenvectors of R
-  est <- if(n==1) sqrt(corr_eigen$values[1])  else diag(sqrt(corr_eigen$values[1:n]))
-  lambda <- as.matrix(corr_eigen$vectors[,1:n]) %*% est
-  while (error > min.error) {
-  corr_eigen <- eigen(corr) 
-   
-  # The lambda object is updated upon each iteration using new estimates of the communality
-  est <- if(n==1) sqrt(corr_eigen$values[1])  else diag(sqrt(corr_eigen$values[1:n]))
-  lambda <- as.matrix(corr_eigen$vectors[,1:n]) %*% est
-   
-  # R - Psi is then found by multiplying the lambda matrix by its transpose
-  corr_mod <- lambda %*% t(lambda)
-  corr_mod_diag <- diag(corr_mod) # The diagonal of R - Psi is the new communality estimate
-   
-  # The sum of the new estimate is taken and compared with the previous estimate. If the
-  # difference is less than the error threshold the loop stops
-  h2_new <- sum(corr_mod_diag) 
-  error <- abs(h2 - h2_new)
-   
-  # If the difference between the previous and new estimate is not below the threshold, replace
-  # the new estimate with the previous
-  h2 <- h2_new
-   
-  # Store the iteration value (the sum of the estimate) and replace the diagonal of R with the
-  # diagonal of R - Psi found previously
-  com.iter <- append(com.iter, h2_new)
-  diag(corr) <- corr_mod_diag
-  }
-  
-h2 <- rowSums(lambda^2)
-u2 <- 1 - h2
-com <- rowSums(lambda^2)^2 / rowSums(lambda^4)
- 
-iter.fa.loadings <- data.frame(cbind(round(lambda,2), round(h2, 2), round(u2, 3), round(com, 2)))
-
-cnames <- paste("Factor", as.character(c(1:n)))
-colnames(iter.fa.loadings) <- c(cnames, 'h2', 'u2', 'com')
-
-
-prop.var <- corr_eigen$values[1:n] / sum(diag(solve(corr)))
-var.cumulative <- corr_eigen$values / n_var
- 
-factor.var <- data.frame(rbind(round(prop.var[1:n], 2), round(var.cumulative[1:n], 2)))
-rownames(factor.var) <- c('Proportion Explained', 'Cumulative Variance')
-cnames <- paste("Factor", as.character(c(1:n)))
-colnames(factor.var) <- cnames 
-factor.var
-
-iter.fa.res <- list(iter.fa.loadings, factor.var)
-iter.fa.res
-
-plot(x=iter.fa.loadings[1:n])
+# Perform Factor Analysis
+fa.out <- fa(r = corr, nfactors = 2, rotate = "varimax")
+fa.out
 
 ```
 
 
 \section{5. Interpretation of Solution}
+
+# RMSR = 0.04
+# First factor represents: 1,2,4,8,9,10,11,12,13,15,16,18,19,20
+# Second factor represents: 3,5,6,7,14,17
+# First factor might be called "High intense anxiety"
+# Second factor might be called "Low intense anxiety"
+
+
+```{r}
+# Plot of factor loadings
+plot(fa.out, title = "Factor loadings")
+```
+
+```{r}
+# Structural diagram
+fa.diagram(fa.out, main = "Structural diagram")
+```
+
+
 
 
