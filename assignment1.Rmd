@@ -1,0 +1,229 @@
+---
+title: "Assignment 1"
+author: "Group 11"
+date: "The Date"
+output: pdf_document
+---
+
+\section{1. Problem Statement: PCA}
+The file drugsrecovery.txt provides data on recovery status of patients after administration of different doses of two different drugs, L and R. The recovery status is measured as a percentage drop in body pathogens pre- and post-drug administration. A larger percentage drop implies better recovery. The administering of the drugs, at each of the dose levels, is assumed to not interfere with recovery levels for previous and/or subsequent dose(s).  100 participants took part in the study. Variables L500 to R4000, respectively refer to drug L at a dose level of 500 micrograms to drug R at 4000 micrograms. The ID is a patient’s hospital identification number. Perform a principal components analysis to:
+    I. Determine the appropriate number of components that can be used to effectively summarize the information in the data. Explain how you settled on the reported number of components.
+    II. If possible, provide an interpretation for the chosen sample principal components
+    III. Comment on the (bi-)plot for the first two components
+
+
+\section{2. Descriptive Statistics}
+
+check missing values and impute (not needed here), take away ID column, check if all columns are int
+
+
+```{r}
+drugs <-read.delim("data/drugsrecovery.txt", header = TRUE, sep="",dec = ".")
+sub_drugs <- subset(drugs, select = -c(ID)) 
+sub_drugs <- data.frame(sub_drugs)
+str(sub_drugs)
+
+```
+\section{2. Assumptions}
+
+? scaling? 
+princomp vs prcomp? 
+
+
+
+The function princomp() uses the spectral decomposition approach.
+
+The functions prcomp() and PCA()[FactoMineR] use the singular value decomposition (SVD).
+
+According to R help, SVD has slightly better numerical accuracy. Therefore, prcomp() is the preferred function.
+
+
+
+
+\section{3. Method}
+
+PCA explained?
+```{r}
+
+prin_comp <- prcomp(sub_drugs, scale = TRUE)
+summary(prin_comp)
+```
+
+
+- extract values based on different approaches:
+extract P C 0 s to explain a given percentage of the variance
+• scree plot: plot the eigenvalues in decreasing order and find the
+elbow that distinguishes the mountain from the debris
+• retain only P C 0 s with eigenvalue larger than one (only for standar-
+dized data)
+• Horn’s Parallel procedure: compute eigenvalues associated with
+many simulated uncorrelated normal variables - retain the ith PC
+if the corresponding eigenvalue is larger than the 95th percentile
+of the distribution of the ith largest eigenvalue of the random
+data (same idea as the previous rule but taking random variation
+into account) 
+
+```{r}
+library(factoextra)
+explained_var <-round(((prin_comp$sdev)^2)/sum((prin_comp$sdev)^2),4)
+plot(prin_comp$sdev^2)
+plot(explained_var, xlab = "Principal Component",
+     ylab = "Proportion of Variance Explained",
+     type = "b")
+plot(cumsum(explained_var), xlab = "Principal Component", ylab = "Cumulative Variance", type="b")
+
+res <- get_pca_ind(prin_comp)
+res$contrib
+
+```
+\section{4. Interpretation}
+```{r}
+library(ggbiplot)
+library(scales)
+library(plyr)
+
+ggbiplot(prin_comp)
+ggbiplot(prin_comp, choices = c(3,4))
+
+```
+
+first plot shows two groupings of dosage amount independant of the drug
+
+second plot barely shows any relevant information as there is barely any group seperation
+-> was to be expected since they explain small portion of the variance only 
+
+
+\section{1. Problem Statement Task 2:} 
+exploratory factor analysis:
+• explain the correlation structure among observed variables
+• try to find underlying dimensions that can explain the observed
+correlations
+• example: the correlation between scores on mathematics, statis-
+tics and physics exams can be explained because they all measure
+somehow quantitative intelligence
+
+```
+1. State the problem
+
+2. Descriptive Statistics (to check data, to find outliers)
+
+3. Test (or at least state) the assumptions of the method, if any
+
+4. Conduct the method (describe in more detail the "best" approach you have found)
+
+5. Interpret the solution
+
+6. Compare the results briefly with alternative solutions, if any
+
+7. Conclusion
+```
+
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+\section{Descriptive Statistics}
+```{r}
+library(psych)
+
+corr <-read.delim("data/screening.txt", header = TRUE, sep="",dec = ".", skipNul = FALSE)
+corr <- subset(corr, select = -c(X_name_)) 
+
+m <- matrix(NA,20,20)
+m[lower.tri(m,diag=TRUE)] <- 1:10
+
+makeSymm <- function(m) {
+   m[upper.tri(m)] <- t(m)[upper.tri(m)]
+   return(m)
+}
+
+corr <- makeSymm(corr)
+```
+
+
+\section{Assumptions of Methods}
+assuming standardized data and factors + uncorrelated factors
+
+\section{Method}
+
+compute eigenvalues and check how many factors should be extracted
+```{r}
+eigenvalues <- eigen(corr)$values
+plot(eigenvalues)
+
+```
+seems like the first component would be sufficient
+
+```{r}
+# set chosen number of factors
+n <- 2
+n_var <- 20
+
+corr_smc <- (1 - 1 / diag(solve(corr)))
+diag(corr) <- corr_smc
+
+min.error <- .001
+com.iter <- c()
+h2 <- sum(diag(solve(corr)))
+error <- h2
+
+corr_eigen <- eigen(corr) # Get the eigenvalues and eigenvectors of R
+  est <- if(n==1) sqrt(corr_eigen$values[1])  else diag(sqrt(corr_eigen$values[1:n]))
+  lambda <- as.matrix(corr_eigen$vectors[,1:n]) %*% est
+  while (error > min.error) {
+  corr_eigen <- eigen(corr) 
+   
+  # The lambda object is updated upon each iteration using new estimates of the communality
+  est <- if(n==1) sqrt(corr_eigen$values[1])  else diag(sqrt(corr_eigen$values[1:n]))
+  lambda <- as.matrix(corr_eigen$vectors[,1:n]) %*% est
+   
+  # R - Psi is then found by multiplying the lambda matrix by its transpose
+  corr_mod <- lambda %*% t(lambda)
+  corr_mod_diag <- diag(corr_mod) # The diagonal of R - Psi is the new communality estimate
+   
+  # The sum of the new estimate is taken and compared with the previous estimate. If the
+  # difference is less than the error threshold the loop stops
+  h2_new <- sum(corr_mod_diag) 
+  error <- abs(h2 - h2_new)
+   
+  # If the difference between the previous and new estimate is not below the threshold, replace
+  # the new estimate with the previous
+  h2 <- h2_new
+   
+  # Store the iteration value (the sum of the estimate) and replace the diagonal of R with the
+  # diagonal of R - Psi found previously
+  com.iter <- append(com.iter, h2_new)
+  diag(corr) <- corr_mod_diag
+  }
+  
+h2 <- rowSums(lambda^2)
+u2 <- 1 - h2
+com <- rowSums(lambda^2)^2 / rowSums(lambda^4)
+ 
+iter.fa.loadings <- data.frame(cbind(round(lambda,2), round(h2, 2), round(u2, 3), round(com, 2)))
+
+cnames <- paste("Factor", as.character(c(1:n)))
+colnames(iter.fa.loadings) <- c(cnames, 'h2', 'u2', 'com')
+
+
+prop.var <- corr_eigen$values[1:n] / sum(diag(solve(corr)))
+var.cumulative <- corr_eigen$values / n_var
+ 
+factor.var <- data.frame(rbind(round(prop.var[1:n], 2), round(var.cumulative[1:n], 2)))
+rownames(factor.var) <- c('Proportion Explained', 'Cumulative Variance')
+cnames <- paste("Factor", as.character(c(1:n)))
+colnames(factor.var) <- cnames 
+factor.var
+
+iter.fa.res <- list(iter.fa.loadings, factor.var)
+iter.fa.res
+
+plot(x=iter.fa.loadings[1:n])
+
+```
+
+
+\section{5. Interpretation of Solution}
+
+
