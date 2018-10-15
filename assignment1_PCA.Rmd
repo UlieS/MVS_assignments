@@ -4,110 +4,125 @@ author: "Group 11"
 date: "The Date"
 output: pdf_document
 ---
+\section{0. Load Libraries and Dependencies}
 
-\section{1. Problem Statement: PCA}
-The file drugsrecovery.txt provides data on recovery status of patients after administration of different doses of two different drugs, L and R. The recovery status is measured as a percentage drop in body pathogens pre- and post-drug administration. A larger percentage drop implies better recovery. The administering of the drugs, at each of the dose levels, is assumed to not interfere with recovery levels for previous and/or subsequent dose(s).  100 participants took part in the study. Variables L500 to R4000, respectively refer to drug L at a dose level of 500 micrograms to drug R at 4000 micrograms. The ID is a patient’s hospital identification number. Perform a principal components analysis to:
-    I. Determine the appropriate number of components that can be used to effectively summarize the information in the data. Explain how you settled on the reported number of components.
-    II. If possible, provide an interpretation for the chosen sample principal components
-    III. Comment on the (bi-)plot for the first two components
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(nFactors)
+```
 
+
+\section{1. Problem Statement}
+
+The presented data from a conducted study shows the recovery status for 100 participants after taking two different drugs with differing doses. Recovery is measured as the percentage drop in body pathogens before and after taking the respective drug. In order to judge on the effectiveness of the drugs the principal component analysis is applied, to shrink the information to only a subset of the variables' dimensions. The associated identification of useful factor brandings and the reflection of the data on the identified subdimensions should help to evaluate the initial question. \
+
+The second section starts with the data preparation and a brief description of the data. Afterwards, in section three, the assumptions for using principal component analysis are described including the way we deal with them. In section four the principal component analysis is applied and the most relevant outputs are described. The last section covers the answering of first, how the factors in the subspace can be labled appropriately and second, which drugs were effective.
 
 \section{2. Descriptive Statistics}
 
-check missing values and impute (not needed here), take away ID column, check if all columns are int
-
+Before dealing with the principal component analysis (PCA), it is important to prepare the data. After importing the data and performing the glimpse-function, one can see that the data is stored in a data.frame object with the dimension 100x9. 
 
 ```{r}
-drugs <-read.delim("data/drugsrecovery.txt", header = TRUE, sep="",dec = ".")
-sub_drugs <- subset(drugs, select = -c(ID)) 
-sub_drugs <- data.frame(sub_drugs)
-str(sub_drugs)
-
+drugdata <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/drugsrecovery.txt", header=T)
+class(drugdata)
+glimpse(drugdata)
 ```
-\section{2. Assumptions}
 
-? scaling? 
-princomp vs prcomp? 
+First of all the first column has to be eliminated, as it only stores the ID values. It would be a major mistake taking this column into account when performing PCA, as the results would be heavily biased. 
 
-
-
-The function princomp() uses the spectral decomposition approach.
-
-The functions prcomp() and PCA()[FactoMineR] use the singular value decomposition (SVD).
-
-According to R help, SVD has slightly better numerical accuracy. Therefore, prcomp() is the preferred function.
-
-
-
-
-\section{3. Method}
-
-PCA explained?
 ```{r}
-
-pr.out <- prcomp(sub_drugs, scale = TRUE)
-summary(pr.out)
+drugdata <- drugdata[-1]
+glimpse(drugdata)
 ```
 
+One can also see that all the remaining values are of class integer. This is important to know, as correlation matrices can only be calculated using either integers or numerical values. After selecting the relevant variables, it is also useful to check for missing values. This is done by using the apply-function, which outputs the amount of missing values for each column.
 
-- extract values based on different approaches:
-extract P C 0 s to explain a given percentage of the variance
-• scree plot: plot the eigenvalues in decreasing order and find the
-elbow that distinguishes the mountain from the debris
-• retain only P C 0 s with eigenvalue larger than one (only for standar-
-dized data)
-• Horn’s Parallel procedure: compute eigenvalues associated with
-many simulated uncorrelated normal variables - retain the ith PC
-if the corresponding eigenvalue is larger than the 95th percentile
-of the distribution of the ith largest eigenvalue of the random
-data (same idea as the previous rule but taking random variation
-into account) 
+```{r}
+drugdata %>% apply(2, function(x){
+  sum(is.na(x))
+}) 
+```
 
+Hence, there arent any missing values presented in the data. Even though the PCA has no distributional assumptions regarding the data it might still be useful to get an idea of the distribution of the variables
+
+```{r}
+summary(drugdata)
+```
+
+As one would expect, the range of the variables increase as the dose increases. Taking into consideration that the minimum of each variable is equal to five, this means that due to the higher dose there might be at least some participants whose percentage drop in body pathogens was quite high compared to the participants who got a lower dose. This can also be derived when looking at the mean values or the outlier resistant median values. This might give rise to the assumption that higher dose is more effective. But let's see what is the outcome of the PCA.
+
+\section{3. Assumptions}
+
+When dealing with PCA there is basically one assumption which has to be met, the variables have to be standardized. 
+
+1. scaling
+
+2. Finding the right amount of PCA
+
+Determine the appropriate number of components that can be used to effectively summarize the information in the data. Explain how you settled on the reported number of components.
+
+- Scree Plot
 
 ```{r}
 # Eigenvalues
-eval <- pr.out$sdev^2
-# First two eigenvalues are bigger than one
-```
+eval <- eigen(cor(drugdata))$values
 
-
-```{r}
-# Eigenvectors
-evec <- pr.out$rotation
-```
-
-
-```{r}
-# Standard deviations and proportion of variance
-summary(pr.out)
-# First two principal components explain 69.34% of the variance
-```
-
-
-
-```{r}
 # Scree Plot
-par(mfrow = c(1,2))
 plot(eval, xlab = "Principal Component", ylab = "Eigenvalue",
      type = "b", main = "Scree Plot")
+abline(h=1,col="red")
+
 ```
 
+- Horn’s Parallel procedure
+
+Compute Eigenvalues associated with many simulated uncorrelated normal variables - retain the ith PC if the corresponding eigenvalue is larger than the 95th percentile of the distribution of the ith largest eigenvalue of the random data (same idea as the previous rule but taking random variation into account)
+
 ```{r}
+ap <- parallel(subject = nrow(drugdata), var = 5, rep= 1000,cent = 0.05)
+
+plot(eval, xlim=c(0,ncol(drugdata)), ylim = c(0,max(eval)), ylab = "eigenvalues")
+lines(ap$eigen$qevpea, type = "o",pch = 15, lwd = 2,col = "red")
+title(main= "Horn's parallel procedure - 5% lower percentile")
+
+```
+
+
+\section{4. Method}
+
+
+- Perform PCA
+
+```{r}
+pr.out <- prcomp(drugdata, scale = TRUE)
+```
+
+
+
+- Variance explained
+
+```{r}
+summary(pr.out)
+# First two principal components explain 69.34% of the variance
+
 # Variance Explained Plot
 prop_varex <- eval / sum(eval)
 plot(prop_varex, xlab = "Principal Component", ylab = "Proportion of varianve explained",
      type = "b", main = "Variance Explained", ylim = c(0,1))
 lines(cumsum(prop_varex), type = "b", lty = 3)
-par(mfrow = c(1,1))
 ```
 
 
-\section{4. Interpretation}
+
+\section{5. Interpretation}
 
 ```{r}
+# Eigenvectors
+evec <- pr.out$rotation
+
 # Correlation coefficients between PC's and initial variables
-varnames <- names(drugs)[2:ncol(drugs)]
-corrcoef <- matrix(nrow = 2, ncol = ncol(drugs)-1, byrow = T)
+varnames <- names(drugdata)
+corrcoef <- matrix(nrow = 2, ncol = ncol(drugdata), byrow = T)
 colnames(corrcoef) <- varnames
 rownames(corrcoef) <- c("PC1", "PC2")
 
