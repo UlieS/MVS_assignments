@@ -1,11 +1,11 @@
 ---
-title: "Assignment 1"
+title: "Assignment 1: EFA"
 author: "Group 11"
 date: "The Date"
-output: html_document
+output: pdf_document
 ---
 
-\section{1. Problem Statement Task 2:} 
+\section{1. Problem Statement Task 2} 
 exploratory factor analysis:
 • explain the correlation structure among observed variables
 • try to find underlying dimensions that can explain the observed
@@ -35,7 +35,7 @@ somehow quantitative intelligence
 ```
 
 
-\section{Descriptive Statistics}
+\section{2. Descriptive Statistics}
 ```{r}
 library(psych)
 
@@ -54,7 +54,7 @@ corr <- makeSymm(corr)
 ```
 
 
-\section{Assumptions of Methods}
+\section{3. Assumptions of Methods}
 assuming standardized data and factors + uncorrelated factors
 
 ```{r}
@@ -63,43 +63,65 @@ KMO(corr)
 # Kaiser MSA = 0.95 > 0.8 --> appropriate data
 ```
 
-\section{Method}
+\section{4. Method}
+There are different methods of obtaining a factor model, such as principal component factoring, iterative principal components factoring or the maximum likelihood method.
+First, the number of relevant factors to be extracted has to be determined. This can be inferred from the eigenvalues $\lambda_i$ and eigenvectors $\epsilon_i$ of the observed correlation matrix $R^{obs}$.
+There are a number of rules of thumb which can be applied to the computed values:
+\begin{itemize}
+\setlength\itemsep{0em}
 
-```{r}
+\item Retain only those factors with an eigenvalue larger than 1 (Guttman-Kaiser rule)
+\item Horn's parallel procedure
+\item Make a scree-plot and extract the amount of factors before the knee point of the slope
+
+\end{itemize}
+
+
+```{r, fig.height= 4, fig.width= 4}
 # Define the amount of factors
 eval <- eigen(corr)$values
+
 plot(eval, xlab = "Principal Component", ylab = "Eigenvalue",
      type = "b", main = "Scree Plot")
-# Choose 2 factors
+```
 
-# CHECK USING HORNS
+Considering the Scree Plot we should only retain the first factor. However, we also took the Kaiser-Guttman rule into account and decided to keep two factors. 
+Factor analysis can be executed with different factoring methods to extract the latent variables. We used principal factoring and maximum likelihood. They both eomploy iterative approaches of estimating the correlation matrix from the oberserved Matrix. Principal factoring assumes that the intitial communalities are 1, meaning that there is no error at the starting point. In each iteration, these values then replace the diagonal in the correlation matrix which is used to compute a new set of factors.
+Maximum likelihood assumes a normal distribution of the dataset and iteratively adjusts distribution parameters to better fit the model to the observed data. \newline
+As there is an infinite number of different factoring solutions, rotations are applied to find the best possible interpretation of the model. For orthogonal models, which is one of our assumptions for this task, the most common procedures are varimax and quartimax. The latter focuses on identifing factor structure such that all variables have fairly high loadings on a few factors and have near zero loadings on the other factors. Varimax on the other hand tries to maximize the variance of loadings for each factor, such that every factor has high loadings on a few variables and low loadings for the other variables.
+
+
+```{r}
 
 # Perform Factor Analysis
-fa.out <- fa(r = corr, nfactors = 2, rotate = "varimax")
-fa.out
+fa.out.pa <- fa(r = corr, nfactors = 2, fm="pa", rotate = "varimax", residuals = TRUE, SMC=FALSE)
+fa.out.pa
+
+fa.out.ml <- fa(r = corr, nfactors = 2, fm="ml", rotate = "varimax", residuals = TRUE, SMC=FALSE, 
+                max.iter = 10)
+
 
 ```
 
 
 \section{5. Interpretation of Solution}
-
-# RMSR = 0.04
-# First factor represents: 1,2,4,8,9,10,11,12,13,15,16,18,19,20
-# Second factor represents: 3,5,6,7,14,17
-# First factor might be called "High intense anxiety"
-# Second factor might be called "Low intense anxiety"
+As it is the objective of EFA to explore the variable structure, the labeling of meaningful latent factors is open for interpretation and ambigious. Maximum Likelihood and Principal Factoring achieved very similar results, both generating a root mean square of the residuals (RMSR) of 0.04 and the same variable groups. 
+Varimax provided the better possible factor explanation as 14 variables were loading higher on the first Factor and the rest on the second. We labeled the first one including statements such as "Lack of confidence during tests" (x1),  "Heart beating fast during tests" (x18), "Screening bothers me" (x12) as "high intense anxiety" and the latent factor of variables such as "Thinking about test results" (x3), "The harder I try to contain myself, the less assured I get" (x6), "Defeat myself during tests" (x14) as "self-manipulative thoughts" or "low intense anxiety". A full structural diagram and the respective factor laodings plot can be seen below. 
 
 
-```{r}
+```{r, fig.height= 4, fig.width= 4}
 # Plot of factor loadings
-plot(fa.out, title = "Factor loadings")
+plot(fa.out.pa, title = "Factor loadings")
 ```
 
 ```{r}
 # Structural diagram
-fa.diagram(fa.out, main = "Structural diagram")
+fa.diagram(fa.out.pa, main = "Structural diagram")
 ```
 
+\section{6. Comparison with alternative solutions}
 
+
+\section{7. Conclusion}
 
 
