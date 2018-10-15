@@ -1,0 +1,105 @@
+---
+title: "Assignment 1"
+author: "Group 11"
+date: "The Date"
+output: html_document
+---
+
+\section{1. Problem Statement Task 2:} 
+exploratory factor analysis:
+• explain the correlation structure among observed variables
+• try to find underlying dimensions that can explain the observed
+correlations
+• example: the correlation between scores on mathematics, statis-
+tics and physics exams can be explained because they all measure
+somehow quantitative intelligence
+
+
+1. State the problem
+
+2. Descriptive Statistics (to check data, to find outliers)
+
+3. Test (or at least state) the assumptions of the method, if any
+
+4. Conduct the method (describe in more detail the "best" approach you have found)
+
+5. Interpret the solution
+
+6. Compare the results briefly with alternative solutions, if any
+
+7. Conclusion
+
+
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+\section{Descriptive Statistics}
+```{r}
+library(psych)
+
+corr <-read.delim("data/screening.txt", header = TRUE, sep="",dec = ".", skipNul = FALSE)
+corr <- subset(corr, select = -c(X_name_)) 
+
+m <- matrix(NA,20,20)
+m[lower.tri(m,diag=TRUE)] <- 1:10
+
+makeSymm <- function(m) {
+   m[upper.tri(m)] <- t(m)[upper.tri(m)]
+   return(m)
+}
+
+corr <- makeSymm(corr)
+```
+
+
+\section{Assumptions of Methods}
+assuming standardized data and factors + uncorrelated factors
+
+```{r}
+# Perform Kaiser's MSA to evaluate appropriateness of data
+KMO(corr)
+# Kaiser MSA = 0.95 > 0.8 --> appropriate data
+```
+
+\section{Method}
+
+```{r}
+# Define the amount of factors
+eval <- eigen(corr)$values
+plot(eval, xlab = "Principal Component", ylab = "Eigenvalue",
+     type = "b", main = "Scree Plot")
+# Choose 2 factors
+
+# CHECK USING HORNS
+
+# Perform Factor Analysis
+fa.out <- fa(r = corr, nfactors = 2, rotate = "varimax")
+fa.out
+
+```
+
+
+\section{5. Interpretation of Solution}
+
+# RMSR = 0.04
+# First factor represents: 1,2,4,8,9,10,11,12,13,15,16,18,19,20
+# Second factor represents: 3,5,6,7,14,17
+# First factor might be called "High intense anxiety"
+# Second factor might be called "Low intense anxiety"
+
+
+```{r}
+# Plot of factor loadings
+plot(fa.out, title = "Factor loadings")
+```
+
+```{r}
+# Structural diagram
+fa.diagram(fa.out, main = "Structural diagram")
+```
+
+
+
+
