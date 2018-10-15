@@ -92,7 +92,7 @@ title(main= "Horn's parallel procedure - 5% lower percentile")
 - Perform PCA
 
 ```{r}
-pr.out <- prcomp(drugdata, center = TRUE)
+pr.out <- prcomp(scale(drugdata, center = T))
 ```
 
 
@@ -118,6 +118,7 @@ lines(cumsum(prop_varex), type = "b", lty = 3)
 # Eigenvectors
 evec <- pr.out$rotation
 
+
 # Correlation coefficients between PC's and initial variables
 varnames <- names(drugdata)
 corrcoef <- matrix(nrow = 2, ncol = ncol(drugdata), byrow = T)
@@ -126,7 +127,7 @@ rownames(corrcoef) <- c("PC1", "PC2")
 
 for( n in 1:length(rownames(corrcoef)) ){
   for( m in 1:nrow(evec) ){
-    corrcoef[n,m] <- evec[m,n] * sqrt(eval)[n]
+    corrcoef[n,m] <- evec[m,n] * sqrt(eval)[n] / sd(drugdata[,m])
   }
 }
 corrcoef
@@ -139,8 +140,7 @@ corrcoef
 
 
 ```{r}
-biplot(pr.out)
-biplot(pr.out, choices = c(3,4))
+biplot(pr.out, choices = c(1,2))
 
 ```
 
