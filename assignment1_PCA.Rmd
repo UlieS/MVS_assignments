@@ -43,7 +43,7 @@ drugdata %>% apply(2, function(x){
 }) 
 ```
 
-Hence, there arent any missing values presented in the data. Even though the PCA has no distributional assumptions regarding the data it might still be useful to get an idea of the distribution of the variables
+Hence, there arent any missing values presented in the data. Even though the PCA has no distributional assumptions regarding the data it might still be useful to get an idea of the distribution of the variables.
 
 ```{r}
 summary(drugdata)
@@ -53,15 +53,13 @@ As one would expect, the range of the variables increase as the dose increases. 
 
 \section{3. Assumptions}
 
-When dealing with PCA there is basically one assumption which has to be met, the variables have to be standardized. 
+When dealing with PCA there is basically one assumption which has to be met, namely the variables have to be either mean centered or standardized. As all variables are measured in the same scale (from 0% to 100%) the variance observed to not artificial, but important information which has to be considered. Therefore mean centering is applied when perfoming PCA. This is done in the upcoming section when using the prcomp-function with the center parameter set to TRUE. 
 
-1. scaling
+\section{4. Method}
 
-2. Finding the right amount of PCA
+Before applying the method the first task is to identify the appropriate number of principal components that effectively summarize the data. Hence, we will decide based on two commonly used procedures. First by visually analyzing the scree plot and second by performing Horn's Parallel procedure. \
 
-Determine the appropriate number of components that can be used to effectively summarize the information in the data. Explain how you settled on the reported number of components.
-
-- Scree Plot
+The scree plot is just the visualization of the eigenvalues in decreasing order. Hence, in the following chunk the eigenvalues are extracted from the correlation matrix of the data and the eigenvalues are ploted. The red line highlights the threshold value of one.
 
 ```{r}
 # Eigenvalues
@@ -74,12 +72,14 @@ abline(h=1,col="red")
 
 ```
 
+The first characteristic to find would be the so called elbow, which separates the mountain from the debris. As the slope has almost an exponential form, it is difficult to see whether such a distinction can be made. The second criterion to check is to identify which eigenvalues lay above the threshold value of one und which lay below. The first and the second principal component are clearly above the threshold value. The third principal component is a borderliner, as it's value of 0.9753248 lies slightly below the threshold value.
+
 - Horn’s Parallel procedure
 
 Compute Eigenvalues associated with many simulated uncorrelated normal variables - retain the ith PC if the corresponding eigenvalue is larger than the 95th percentile of the distribution of the ith largest eigenvalue of the random data (same idea as the previous rule but taking random variation into account)
 
 ```{r}
-ap <- parallel(subject = nrow(drugdata), var = 5, rep= 1000,cent = 0.05)
+ap <- parallel(subject = nrow(drugdata), var = 8, rep= 1000,cent = 0.05)
 
 plot(eval, xlim=c(0,ncol(drugdata)), ylim = c(0,max(eval)), ylab = "eigenvalues")
 lines(ap$eigen$qevpea, type = "o",pch = 15, lwd = 2,col = "red")
@@ -88,13 +88,11 @@ title(main= "Horn's parallel procedure - 5% lower percentile")
 ```
 
 
-\section{4. Method}
-
 
 - Perform PCA
 
 ```{r}
-pr.out <- prcomp(drugdata, scale = TRUE)
+pr.out <- prcomp(drugdata, center = TRUE)
 ```
 
 
