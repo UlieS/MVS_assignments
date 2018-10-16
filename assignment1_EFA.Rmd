@@ -83,10 +83,11 @@ eval <- eigen(corr)$values
 
 plot(eval, xlab = "Principal Component", ylab = "Eigenvalue",
      type = "b", main = "Scree Plot")
+abline(h=1,col="red")
 ```
 
 Considering the Scree Plot we should only retain the first factor. However, we also took the Kaiser-Guttman rule into account and decided to keep two factors. 
-Factor analysis can be executed with different factoring methods to extract the latent variables. We used principal factoring and maximum likelihood. They both eomploy iterative approaches of estimating the correlation matrix from the oberserved Matrix. Principal factoring assumes that the intitial communalities are 1, meaning that there is no error at the starting point. In each iteration, these values then replace the diagonal in the correlation matrix which is used to compute a new set of factors.
+Factor analysis can be executed with different factoring methods to extract the latent variables. We used principal factoring and maximum likelihood. They both eomploy iterative approaches of estimating the correlation matrix from the observed Matrix. Principal factoring assumes that the intitial communalities are 1, meaning that there is no error at the starting point. In each iteration, these values then replace the diagonal in the correlation matrix which is used to recompute the set of factors.
 Maximum likelihood assumes a normal distribution of the dataset and iteratively adjusts distribution parameters to better fit the model to the observed data. \newline
 As there is an infinite number of different factoring solutions, rotations are applied to find the best possible interpretation of the model. For orthogonal models, which is one of our assumptions for this task, the most common procedures are varimax and quartimax. The latter focuses on identifing factor structure such that all variables have fairly high loadings on a few factors and have near zero loadings on the other factors. Varimax on the other hand tries to maximize the variance of loadings for each factor, such that every factor has high loadings on a few variables and low loadings for the other variables.
 
@@ -95,7 +96,7 @@ As there is an infinite number of different factoring solutions, rotations are a
 
 # Perform Factor Analysis
 fa.out.pa <- fa(r = corr, nfactors = 2, fm="pa", rotate = "varimax", residuals = TRUE, SMC=FALSE)
-fa.out.pa
+summary(fa.out.pa)
 
 fa.out.ml <- fa(r = corr, nfactors = 2, fm="ml", rotate = "varimax", residuals = TRUE, SMC=FALSE, 
                 max.iter = 10)
@@ -105,8 +106,8 @@ fa.out.ml <- fa(r = corr, nfactors = 2, fm="ml", rotate = "varimax", residuals =
 
 
 \section{5. Interpretation of Solution}
-As it is the objective of EFA to explore the variable structure, the labeling of meaningful latent factors is open for interpretation and ambigious. Maximum Likelihood and Principal Factoring achieved very similar results, both generating a root mean square of the residuals (RMSR) of 0.04 and the same variable groups. 
-Varimax provided the better possible factor explanation as 14 variables were loading higher on the first Factor and the rest on the second. We labeled the first one including statements such as "Lack of confidence during tests" (x1),  "Heart beating fast during tests" (x18), "Screening bothers me" (x12) as "high intense anxiety" and the latent factor of variables such as "Thinking about test results" (x3), "The harder I try to contain myself, the less assured I get" (x6), "Defeat myself during tests" (x14) as "self-manipulative thoughts" or "low intense anxiety". A full structural diagram and the respective factor laodings plot can be seen below. 
+As it is the objective of EFA to explore the variable structure, the labeling of meaningful latent factors is ambigious. Maximum likelihood and principal factoring achieved very similar results, both generating a root mean square of the residuals (RMSR) of 0.04. This measure and the same variable groups. 
+Varimax provided the better possible factor explanation as 14 variables were loading higher on the first Factor and the rest on the second. We labeled the first one including statements such as "Lack of confidence during tests" (x1),  "Heart beating fast during tests" (x18), "Screening bothers me" (x12) as "self-confidence during test situations" or "high intense anxiety" and the latent factor of variables such as "Thinking about test results" (x3), "The harder I try to contain myself, the less assured I get" (x6), "Defeat myself during tests" (x14) as "self-manipulative thoughts during test situations" or "low intense anxiety". A full structural diagram and the respective factor laodings plot can be seen below. 
 
 
 ```{r, fig.height= 4, fig.width= 4}
@@ -118,10 +119,5 @@ plot(fa.out.pa, title = "Factor loadings")
 # Structural diagram
 fa.diagram(fa.out.pa, main = "Structural diagram")
 ```
-
-\section{6. Comparison with alternative solutions}
-
-
-\section{7. Conclusion}
 
 
