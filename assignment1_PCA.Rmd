@@ -104,7 +104,7 @@ summary(pr.out)
 
 # Variance Explained Plot
 sum <- summary(pr.out)
-plot(sum$importance[2,], xlab = "Principal Component", ylab = "Proportion of varianve explained", type = "b", main = "Variance explained", ylim = c(0,1))
+plot(sum$importance[2,], xlab = "Principal Component", ylab = "Proportion of variance explained", type = "b", main = "Variance explained", ylim = c(0,1))
 lines(cumsum(sum$importance[2,]), type = "b", lty = 3)
 ```
 
@@ -137,20 +137,27 @@ corrcoef
 ```
 
 The correlation coefficients between the principal components and the original variables (structural loadings) shows a clear distinction between the highest dose of both drugs (L4000 and R4000) and the lower doses (L/R500 to L/R2000). The two highest doses are very highly negatively correlated with the first principal component. Only the absolute value of the correlation between L2000 and PC1 is also higher than 0.5 but since L2000 has a higher absolute value of correlation with PC2 and the correlation with PC1 (0.5401) is only just over 0.5 one can safely assume that PC1 mainly represents L/R4000.
-One possible interpretation is that the drugs themselves are very similar and only the difference in the dosage leads to significantly different effects. 
+One possible interpretation is that the drugs themselves are very similar and only the difference in the dosage leads to significantly different effects. The most logical labels for the two PCs that are used are: 
+-PC1: Highest dose (4000)
+-PC2: Low doses (500-2000)
 
 ```{r}
-biplot(pr.out, choices = c(1,2))
+plot(pr.out$x[,1], pr.out$x[,2], xlab = "PC1: Highest dose", ylab = "PC2: Lower doses", main = "Plot of PC-scores")
+abline(v=0, h=0)
+```
+
+The plot of PC-scores enables us to discriminate between four kinds of patients: Patients, who responded well to both drugs (upper right), patients who only responded well to high doses (lower right), patients who only responded well to lower doses (upper left) and patients who did not respond well to any of the doses (lower left). A good response to a drug is supposed when the patient's mean pathogen drop is higher than the mean pathogen drop. One can also see that the patients who did not respond well to the highest dose (left from x=0) have a higher variance of pathogen drop level, i.e. the points on the left of the plot are more spread out than on the right.
+
+
+```{r}
+biplot(pr.out, choices = c(1,2), cex=c(0.6,0.8), xlab = "PC1: Highest dose", ylab = "PC2: Lower doses")
 
 ```
 
-first plot shows two groupings of dosage amount independant of the drug
+The biplot supports the assumption that the doses make a larger difference in percentage drop than the kind of drug (i.e. R or L). This is visible through the angles between the vectors that represent the variables. R4000 and L4000 are highly correlated with each other but almost uncorrelated with the rest of the doses for both drugs (orthogonal vectors mean a correlation of 0 because cos(90)=0).
 
-second plot barely shows any relevant information as there is barely any group seperation
--> was to be expected since they explain small portion of the variance only 
+The vectors for R/L4000 are clearly longer than those for the rest of the drugs and doses. One can conlcude that R/L4000 include a higher ratio of the explained variance than the others. This is supported by the fact that the first PC explains roughly 61% of the variance and it almost only contains R/L4000.
 
-For the majority of the patients, both drugs had barely any effect on the percentage
-drop. Lower dose seems to be more effective compared to higher dose, as with a lower
-dose more patients had a percentage drop.
+
 
 
