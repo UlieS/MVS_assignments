@@ -1,5 +1,5 @@
 ---
-title: "Assignment 1"
+title: "Assignment 1: Task 1 - PCA"
 author: "Group 11"
 date: "16.10.2018"
 output: pdf_document
