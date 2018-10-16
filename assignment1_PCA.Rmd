@@ -1,10 +1,10 @@
 ---
 title: "Assignment 1"
 author: "Group 11"
-date: "The Date"
+date: "16.10.2018"
 output: pdf_document
 ---
-\section{0. Load Libraries and Dependencies}
+\section{0. Load Libraries}
 
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -20,23 +20,30 @@ The second section starts with the data preparation and a brief description of t
 
 \section{2. Descriptive Statistics}
 
-Before dealing with the principal component analysis (PCA), it is important to prepare the data. After importing the data and performing the glimpse-function, one can see that the data is stored in a data.frame object with the dimension 100x9. 
+Before dealing with the principal component analysis (PCA), it is important to prepare the data. After importing the data and performing the glimpse-function, one can see that the data is stored in a data.frame object with the dimension 100 x 9. 
 
 ```{r}
-drugdata <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/drugsrecovery.txt", header=T)
+# Load data
+drugdata <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/drugsrecovery.txt", 
+                       header=T)
+# Show class of drugdata object
 class(drugdata)
+
+# Show structure of dataframe
 glimpse(drugdata)
 ```
 
 First of all the first column has to be eliminated, as it only stores the ID values. It would be a major mistake taking this column into account when performing PCA, as the results would be heavily biased. 
 
 ```{r}
+# Eliminate first column
 drugdata <- drugdata[-1]
 ```
 
 One can also see that all the remaining values are of class integer. This is important to know, as correlation matrices can only be calculated using either integers or numerical values. After selecting the relevant variables, it is also useful to check for missing values. This is done by using the apply-function, which outputs the amount of missing values for each column.
 
 ```{r}
+# Check for missing values
 drugdata %>% apply(2, function(x){
   sum(is.na(x))
 }) 
@@ -45,6 +52,7 @@ drugdata %>% apply(2, function(x){
 Hence, there arent any missing values presented in the data. Even though the PCA has no distributional assumptions regarding the data it might still be useful to get an idea of the distribution of the variables.
 
 ```{r}
+# Extract 6-point statistic
 summary(drugdata)
 ```
 
@@ -61,11 +69,11 @@ Before applying the method the first task is to identify the appropriate number 
 The scree plot is just the visualization of the eigenvalues in decreasing order. Hence, in the following chunk the eigenvalues are extracted from the correlation matrix of the data and the eigenvalues are ploted. The red line highlights the threshold value of one.
 
 ```{r}
-# Eigenvalues of correlation matrix
-eval <- eigen(cor(drugdata))$values
+# Calculate eigenvalues of correlation matrix
+evalcor <- eigen(cor(drugdata))$values
 
-# Scree Plot
-plot(eval, xlab = "Principal Component", ylab = "Eigenvalue",
+# Scree plot
+plot(evalcor, xlab = "Principal component", ylab = "Eigenvalue",
      type = "b", main = "Scree Plot")
 abline(h=1,col="red")
 
@@ -73,76 +81,77 @@ abline(h=1,col="red")
 
 The first characteristic to find would be the so called elbow, which separates the mountain from the debris. As the slope has almost an exponential form, it is difficult to see whether such a distinction can be made. The second criterion to check is to identify which eigenvalues lay above the threshold value of one und which lay below. The first and the second principal component are clearly above the threshold value. The third principal component is a borderliner, as it's value of 0.9753248 lies slightly below the threshold value.
 
-- Horn’s Parallel procedure
-
-Compute Eigenvalues associated with many simulated uncorrelated normal variables - retain the ith PC if the corresponding eigenvalue is larger than the 95th percentile of the distribution of the ith largest eigenvalue of the random data (same idea as the previous rule but taking random variation into account)
+Using Horn’s Parallel procedure might give a clearer understanding, especially regarding the borderline value. Here, eigenvalues associated with many simulated uncorrelated normal variables are computed. A principal component is then retained, if it's eigenvalue is bigger than the 95th percentile of the simulated eigenvalue distribution. 
 
 ```{r}
-ap <- parallel(subject = nrow(drugdata), var = 8, rep= 1000,cent = 0.05)
+# Perform Horn's Parallel Procedure
+ap <- parallel(subject = nrow(drugdata), var = 8, rep = 1000,cent = 0.05)
 
-plot(eval, xlim=c(0,ncol(drugdata)), ylim = c(0,max(eval)), ylab = "eigenvalues")
+# 5% lower percentile on eigenvalues plot
+plot(evalcor, xlim=c(0,ncol(drugdata)), ylim = c(0,max(evalcor)), 
+     ylab = "Eigenvalues")
 lines(ap$eigen$qevpea, type = "o",pch = 15, lwd = 2,col = "red")
-title(main= "Horn's parallel procedure - 5% lower percentile")
+title(main = "Horn's parallel procedure - 5% lower percentile")
 
 ```
 
+When plotting the 5% lower percentile together with the eigenvalues of the correlation matrix, one can clearly see that the first two eigenvalues are clearly above the line and the third one below. Hence, the first two principal component are taken into account in the further analysis. \
 
-
-- Perform PCA
+The PCA is performed using the prcomp function of the stats package. The default value of the parameter center is TRUE and FALSE for the scale parameter, which is exactly the configuration required. Therefore, the data is included and the results are saved in the object pr.out. Not that the analysis is done using the covariance matrix, if the scale parameter is set to FALSE.
 
 ```{r}
+# Perform PCA
 pr.out <- prcomp(drugdata)
-```
 
-
-
-- Variance explained
-
-```{r}
+# Investigate importance of components
 summary(pr.out)
-# First two principal components explain 76.79% of the variance
 
-# Variance Explained Plot
+# Variance explained plot
 sum <- summary(pr.out)
-plot(sum$importance[2,], xlab = "Principal Component", ylab = "Proportion of variance explained", type = "b", main = "Variance explained", ylim = c(0,1))
+plot(sum$importance[2,], xlab = "Principal Component", 
+     ylab = "Proportion of variance explained", type = "b", 
+     main = "Variance explained", ylim = c(0,1))
 lines(cumsum(sum$importance[2,]), type = "b", lty = 3)
 ```
 
-
+It is interesting to see how much variance is explained using the first two principal components. By using the summary function one can see that 61.22% of the variance is explained by the first principal component and 76.22% is explained when including the second principal component.
 
 \section{5. Interpretation}
 
+In order to be able to interpret the data in the two-dimensional eigenvector space the correlation coefficients between the principal components and original variables, which are also called structural loadings, have to be calculated and interpreted. As the model was performed using the covariance matrix, the eigenvalues and eigenvectors of that matrix are needed. The structural loadings are then calculated as follows: 
+
+\begin{align}
+& corr(PC_j, x_k) = \frac{e_{jk}\sqrt{\lambda_j}}{s_k}.
+\end{align}
+
 ```{r}
-# Eigenvectors and eigenvalues of covariance matrix
+# Extract eigenvectors and eigenvalues of covariance matrix
 evec <- pr.out$rotation
 eval <- pr.out$sdev^2
 
-# Correlation coefficients between PC's and initial variables
+# Structural loadings calculation
 varnames <- names(drugdata)
-corrcoef <- matrix(nrow = 2, ncol = ncol(drugdata), byrow = T)
-colnames(corrcoef) <- varnames
-rownames(corrcoef) <- c("PC1", "PC2")
+strloadings <- matrix(nrow = 2, ncol = ncol(drugdata), byrow = T)
+colnames(strloadings) <- varnames
+rownames(strloadings) <- c("PC1", "PC2")
 
-for( n in 1:length(rownames(corrcoef)) ){
+for( n in 1:length(rownames(strloadings)) ){
   for( m in 1:nrow(evec) ){
-    corrcoef[n,m] <- evec[m,n] * sqrt(eval)[n] / sd(drugdata[,m])
+    strloadings[n,m] <- evec[m,n] * sqrt(eval)[n] / sd(drugdata[,m])
   }
 }
-corrcoef
-
-# First principal component is significantly negatively correlated
-# with all variables
-# Second component discriminates between L2000, L4000, R2000, R4000 on one hand
-# (high dose) and L500, L1000, R500 and R1000 on the other hand (low dose)
+strloadings
 ```
 
-The correlation coefficients between the principal components and the original variables (structural loadings) shows a clear distinction between the highest dose of both drugs (L4000 and R4000) and the lower doses (L/R500 to L/R2000). The two highest doses are very highly negatively correlated with the first principal component. Only the absolute value of the correlation between L2000 and PC1 is also higher than 0.5 but since L2000 has a higher absolute value of correlation with PC2 and the correlation with PC1 (0.5401) is only just over 0.5 one can safely assume that PC1 mainly represents L/R4000.
+The structural loadings show a clear distinction between the highest dose of both drugs (L4000 and R4000) and the lower doses (L/R500 to L/R2000). The two highest doses are very highly negatively correlated with the first principal component. Only the absolute value of the correlation between L2000 and PC1 is also higher than 0.5 but since L2000 has a higher absolute value of correlation with PC2 and the correlation with PC1 (0.5401) is only just over 0.5 one can safely assume that PC1 mainly represents L/R4000.
 One possible interpretation is that the drugs themselves are very similar and only the difference in the dosage leads to significantly different effects. The most logical labels for the two PCs that are used are: 
 -PC1: Highest dose (4000)
 -PC2: Low doses (500-2000)
 
 ```{r}
-plot(pr.out$x[,1], pr.out$x[,2], xlab = "PC1: Highest dose", ylab = "PC2: Lower doses", main = "Plot of PC-scores")
+# PC scores plot
+plot(pr.out$x[,1], pr.out$x[,2], xlab = "PC1: Highest dose", 
+     ylab = "PC2: Lower doses", main = "Plot of PC-scores")
 abline(v=0, h=0)
 ```
 
@@ -150,7 +159,9 @@ The plot of PC-scores enables us to discriminate between four kinds of patients:
 
 
 ```{r}
-biplot(pr.out, choices = c(1,2), cex=c(0.6,0.8), xlab = "PC1: Highest dose", ylab = "PC2: Lower doses")
+# Biplot
+biplot(pr.out, choices = c(1,2), cex=c(0.6,0.8), xlab = "PC1: Highest dose", 
+       ylab = "PC2: Lower doses", main = "Biplot")
 
 ```
 
