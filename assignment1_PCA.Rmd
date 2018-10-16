@@ -56,11 +56,11 @@ Hence, there arent any missing values presented in the data. Even though the PCA
 summary(drugdata)
 ```
 
-As one would expect, the range of the variables increase as the dose increases. Taking into consideration that the minimum of each variable is equal to five, this means that due to the higher dose there might be at least some participants whose percentage drop in body pathogens was quite high compared to the participants who got a lower dose. This can also be derived when looking at the mean values or the outlier resistant median values. This might give rise to the assumption that higher dose is more effective. But let's see what is the outcome of the PCA.
+As one would expect, the range of the variables increase as the dose increases. Taking into consideration that the minimum of each variable is equal to five, this means that due to the higher dose there might be at least some participants whose percentage drop in body pathogens was quite high compared to the participants who got a lower dose. This can also be derived when looking at the mean values or the outlier resistant median values. This might give rise to the assumption that higher dose is more effective. 
 
 \section{3. Assumptions}
 
-When dealing with PCA there is basically one assumption which has to be met, namely the variables have to be either mean centered or standardized. As all variables are measured in the same scale (from 0% to 100%) the variance observed to not artificial, but important information which has to be considered. For example, if higher drug doses lead to a higher variance then this information has to be included in the model. Therefore mean centering is applied when perfoming PCA. This is done in the upcoming section when using the prcomp-function with the center parameter set to TRUE, which is the default setting of this function. 
+When dealing with PCA there is basically one assumption which has to be met, namely the variables have to be either mean centered or standardized. As all variables are measured in the same scale (from 0% to 100%) the variance observed to not artificial, but important information which has to be considered. For example, if higher drug doses lead to a higher variance then this information has to be included in the model. Therefore only mean centering is applied when perfoming PCA. This is done in the upcoming section when using the prcomp-function with the center parameter set to TRUE, which is the default setting in this function. 
 
 \section{4. Method}
 
@@ -97,7 +97,7 @@ title(main = "Horn's parallel procedure - 5% lower percentile")
 
 When plotting the 5% lower percentile together with the eigenvalues of the correlation matrix, one can clearly see that the first two eigenvalues are clearly above the line and the third one below. Hence, the first two principal component are taken into account in the further analysis. \
 
-The PCA is performed using the prcomp function of the stats package. The default value of the parameter center is TRUE and FALSE for the scale parameter, which is exactly the configuration required. Therefore, the data is included and the results are saved in the object pr.out. Not that the analysis is done using the covariance matrix, if the scale parameter is set to FALSE.
+The PCA is performed using the prcomp function of the stats package. The default value of the parameter center is TRUE and FALSE for the scale parameter, which is exactly the configuration required. Therefore, the data is included and the results are saved in the object pr.out. Note that the analysis is done using the covariance matrix, if the scale parameter is set to FALSE.
 
 ```{r}
 # Perform PCA
@@ -118,7 +118,7 @@ It is interesting to see how much variance is explained using the first two prin
 
 \section{5. Interpretation}
 
-In order to be able to interpret the data in the two-dimensional eigenvector space the correlation coefficients between the principal components and original variables, which are also called structural loadings, have to be calculated and interpreted. As the model was performed using the covariance matrix, the eigenvalues and eigenvectors of that matrix are needed. The structural loadings are then calculated as follows: 
+In order to be able to interpret the data in the two-dimensional eigenvector space the correlation coefficients between the principal components and original variables, which are also called structural loadings, have to be calculated and interpreted. As the model is performed using the covariance matrix, the eigenvalues and eigenvectors of that matrix are needed. The structural loadings are then calculated as follows: 
 
 \begin{align}
 & corr(PC_j, x_k) = \frac{e_{jk}\sqrt{\lambda_j}}{s_k}.
@@ -145,8 +145,11 @@ strloadings
 
 The structural loadings show a clear distinction between the highest dose of both drugs (L4000 and R4000) and the lower doses (L/R500 to L/R2000). The two highest doses are very highly negatively correlated with the first principal component. Only the absolute value of the correlation between L2000 and PC1 is also higher than 0.5 but since L2000 has a higher absolute value of correlation with PC2 and the correlation with PC1 (0.5401) is only just over 0.5 one can safely assume that PC1 mainly represents L/R4000.
 One possible interpretation is that the drugs themselves are very similar and only the difference in the dosage leads to significantly different effects. The most logical labels for the two PCs that are used are: 
--PC1: Highest dose (4000)
--PC2: Low doses (500-2000)
+
+\begin{itemize}  
+\item PC1: Highest dose (4000)
+\item PC2: Low doses (500-2000).
+\end{itemize}
 
 ```{r}
 # PC scores plot
@@ -155,7 +158,7 @@ plot(pr.out$x[,1], pr.out$x[,2], xlab = "PC1: Highest dose",
 abline(v=0, h=0)
 ```
 
-The plot of PC-scores enables us to discriminate between four kinds of patients: Patients, who responded well to both drugs (upper right), patients who only responded well to high doses (lower right), patients who only responded well to lower doses (upper left) and patients who did not respond well to any of the doses (lower left). A good response to a drug is supposed when the patient's mean pathogen drop is higher than the mean pathogen drop. One can also see that the patients who did not respond well to the highest dose (left from x=0) have a higher variance of pathogen drop level, i.e. the points on the left of the plot are more spread out than on the right.
+The plot of PC-scores enables us to discriminate between four kinds of patients: Patients, who responded well to both drugs (upper right), patients who only responded well to high doses (lower right), patients who only responded well to lower doses (upper left) and patients who did not respond well to any of the doses (lower left). A good response to a drug is supposed when the patient's mean pathogen drop is higher than the mean pathogen drop. One can also see that the patients who did not respond well to the highest dose (left from $x=0$) have a higher variance of pathogen drop level, i.e. the points on the left of the plot are more spread out than on the right.
 
 
 ```{r}
@@ -165,7 +168,7 @@ biplot(pr.out, choices = c(1,2), cex=c(0.6,0.8), xlab = "PC1: Highest dose",
 
 ```
 
-The biplot supports the assumption that the doses make a larger difference in percentage drop than the kind of drug (i.e. R or L). This is visible through the angles between the vectors that represent the variables. R4000 and L4000 are highly correlated with each other but almost uncorrelated with the rest of the doses for both drugs (orthogonal vectors mean a correlation of 0 because cos(90)=0).
+The biplot supports the assumption that the doses make a larger difference in percentage drop than the kind of drug (i.e. R or L). This is visible through the angles between the vectors that represent the variables. R4000 and L4000 are highly correlated with each other but almost uncorrelated with the rest of the doses for both drugs (orthogonal vectors mean a correlation of 0 because $cos(90)=0)$.
 
 The vectors for R/L4000 are clearly longer than those for the rest of the drugs and doses. One can conlcude that R/L4000 include a higher ratio of the explained variance than the others. This is supported by the fact that the first PC explains roughly 61% of the variance and it almost only contains R/L4000.
 
