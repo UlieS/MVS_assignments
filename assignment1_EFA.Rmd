@@ -1,33 +1,18 @@
 ---
-title: "Assignment 1: EFA"
+title: "Assignment 1: Task 2 - EFA"
 author: "Group 11"
-date: "The Date"
+date: "16.10.2018"
 output: pdf_document
 ---
 
-\section{1. Problem Statement Task 2} 
-exploratory factor analysis:
-• explain the correlation structure among observed variables
-• try to find underlying dimensions that can explain the observed
-correlations
-• example: the correlation between scores on mathematics, statis-
-tics and physics exams can be explained because they all measure
-somehow quantitative intelligence
+\section{0. Load Libraries} 
+```{r}
+library(psych)
+```
 
-
-1. State the problem
-
-2. Descriptive Statistics (to check data, to find outliers)
-
-3. Test (or at least state) the assumptions of the method, if any
-
-4. Conduct the method (describe in more detail the "best" approach you have found)
-
-5. Interpret the solution
-
-6. Compare the results briefly with alternative solutions, if any
-
-7. Conclusion
+\section{1. Problem Statement} 
+The correlation matrix illustrates the information about anxiety symptoms which are regarded as the reflection to estimate the overall anxiety related to screening exercises for several commonly occurring medical conditions. A reasonable and accurate exploratory factor analysis can can be regarded as a method to identify a small number of common but unobservable factors and solve the initial questions. This paper will focus on the relationship between each factor and determine a reasonable number of factors that captures the information available in the data. 
+A reasonable and accurate exploratory factor analysis can help researchers identify a small number of common but unobservable factors and solve the initial questions. The second section includes the description of the data and the visualisation of the correlation matrix. Then, the assumptions which can be applied to this case are demonstrated. Furthermore, exploratory factor analysis is implemented with fundamental algorithms of the method. The last section focuses on the interpretion the solution that explained the optimal factors. 
 
 
 ```{r setup, include=FALSE}
@@ -36,12 +21,21 @@ somehow quantitative intelligence
 
 
 \section{2. Descriptive Statistics}
+There are some preparations of the data which are done before implementing exploratory factor analysis (EFA). 
+
 ```{r}
-library(psych)
-
+# Import data
 corr <-read.delim("data/screening.txt", header = TRUE, sep="",dec = ".", skipNul = FALSE)
-corr <- subset(corr, select = -c(X_name_)) 
+```
 
+The first should be eliminated because it only contains X_name values. It cannnot be applied to the EFA as the results will be heavily biased.
+```{r}
+# Eliminate first column
+corr <- subset(corr, select = -c(X_name_)) 
+```
+
+The following function processes the supplied lower correlation matrix into the desired format. 
+```{r}
 m <- matrix(NA,20,20)
 m[lower.tri(m,diag=TRUE)] <- 1:10
 
@@ -51,11 +45,18 @@ makeSymm <- function(m) {
 }
 
 corr <- makeSymm(corr)
+
+corr <- makeSymm(corr)
+corr<- as.matrix(corr)
+heatmap(corr)
 ```
 
+According to the heatmap, lighter colors represent a higher correlation between corresponding two variables. Variable x4 is highly correlated to variable x15, and the correlation between x5 and x10 is relatively weak. Most of the variables are equally high correlated.
 
-\section{3. Assumptions of Methods}
-assuming standardized data and factors + uncorrelated factors
+\section{3. Assumptions}
+When dealing with exploratory factor analysis, there is one fundamental assumption which should be satisfied, which is that the 
+the factors are not correlated, implying an orthogonal model.
+Additionally, the data should be standardized, in others words, the variables have to be either mean centered and standardized. Since we are given a correlation matrix as input, this assumption can be regarded as true. Moreover, there should be a linear relationship between each variable used in this case. This means that the variables need to be at least reasonably related to each other, otherwise there will be no difference between the number of factors and the number of initial variables. For example, if there is no linear relationship between 20 variables in this case, exploratory factor analysis will be meaningless. Therefore, we assume that the data is standardized and there exists linear relationship between each variable.
 
 ```{r}
 # Perform Kaiser's MSA to evaluate appropriateness of data
@@ -71,8 +72,8 @@ There are a number of rules of thumb which can be applied to the computed values
 \setlength\itemsep{0em}
 
 \item Retain only those factors with an eigenvalue larger than 1 (Guttman-Kaiser rule)
-\item Horn's parallel procedure
 \item Make a scree-plot and extract the amount of factors before the knee point of the slope
+\item Horn's parallel procedure
 
 \end{itemize}
 
@@ -87,7 +88,7 @@ abline(h=1,col="red")
 ```
 
 Considering the Scree Plot we should only retain the first factor. However, we also took the Kaiser-Guttman rule into account and decided to keep two factors. 
-Factor analysis can be executed with different factoring methods to extract the latent variables. We used principal factoring and maximum likelihood. They both eomploy iterative approaches of estimating the correlation matrix from the observed Matrix. Principal factoring assumes that the intitial communalities are 1, meaning that there is no error at the starting point. In each iteration, these values then replace the diagonal in the correlation matrix which is used to recompute the set of factors.
+Factor analysis can be executed with different factoring methods to extract the latent variables. We used principal factoring and maximum likelihood. They both employ iterative approaches of estimating the correlation matrix from the observed Matrix. Principal factoring assumes that the intitial communalities are 1, meaning that there is no error at the starting point. In each iteration, these values then replace the diagonal in the correlation matrix which is used to recompute the set of factors.
 Maximum likelihood assumes a normal distribution of the dataset and iteratively adjusts distribution parameters to better fit the model to the observed data. \newline
 As there is an infinite number of different factoring solutions, rotations are applied to find the best possible interpretation of the model. For orthogonal models, which is one of our assumptions for this task, the most common procedures are varimax and quartimax. The latter focuses on identifing factor structure such that all variables have fairly high loadings on a few factors and have near zero loadings on the other factors. Varimax on the other hand tries to maximize the variance of loadings for each factor, such that every factor has high loadings on a few variables and low loadings for the other variables.
 
@@ -110,12 +111,12 @@ fa.out.pa
 As it is the objective of EFA to explore the variable structure, the labeling of meaningful latent factors is ambigious. Maximum likelihood and principal factoring achieved very similar results, both generating the same root mean square of the residuals (RMSR) of 0.04 and the same variable groupings implied by the factor loadings. 
 The RMSR measure indicates the sum of remaining error components, which is desired to be small. The factor model explained a cumulative variance of 0.45. However, the RMSR is the most important measure for the quality of the model.
  \newline
-In regard of rotation approaches, varimax provided the better possible factor explanation as 14 variables were loading higher on the first factor and the rest on the second. Quartimax resulted in all but one variable loading on the first factor, which we did not consider a useful split. \newline
+In regard of rotation approaches, varimax provided the better possible factor explanation as 14 variables were loading higher on the first factor and 6 on the second. Quartimax resulted in all but one variable loading on the first factor, which we did not consider a useful split. \newline
 We thought of two possible interpretations of the structure. Variables loading strong on the first factor PA1 included statements such as "Lack of confidence during tests" (x1),  "Heart beating fast during tests" (x18), "Screening bothers me" (x12) which we labeled as "self-confidence during test situations" or "high intense anxiety". The latent factor of the other group of variables (PA2) consisted of statements such as "Thinking about test results" (x3), "The harder I try to contain myself, the less assured I get" (x6), "Defeat myself during tests" (x14) and can be called "self-manipulative thoughts during test situations" or "low intense anxiety".\newline 
 A full structural diagram displaying the variable groupings can be seen below. 
 
 
-```{r}
+```{r, fig.height= 4, fig.width= 4}
 # Structural diagram
 fa.diagram(fa.out.pa, main = "Structural diagram")
 ```
