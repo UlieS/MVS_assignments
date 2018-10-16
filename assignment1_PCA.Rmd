@@ -100,13 +100,12 @@ pr.out <- prcomp(drugdata)
 
 ```{r}
 summary(pr.out)
-# First two principal components explain 69.34% of the variance
+# First two principal components explain 76.79% of the variance
 
 # Variance Explained Plot
-prop_varex <- eval / sum(eval)
-plot(prop_varex, xlab = "Principal Component", ylab = "Proportion of varianve explained",
-     type = "b", main = "Variance Explained", ylim = c(0,1))
-lines(cumsum(prop_varex), type = "b", lty = 3)
+sum <- summary(pr.out)
+plot(sum$importance[2,], xlab = "Principal Component", ylab = "Proportion of varianve explained", type = "b", main = "Variance explained", ylim = c(0,1))
+lines(cumsum(sum$importance[2,]), type = "b", lty = 3)
 ```
 
 
@@ -137,6 +136,8 @@ corrcoef
 # (high dose) and L500, L1000, R500 and R1000 on the other hand (low dose)
 ```
 
+The correlation coefficients between the principal components and the original variables (structural loadings) shows a clear distinction between the highest dose of both drugs (L4000 and R4000) and the lower doses (L/R500 to L/R2000). The two highest doses are very highly negatively correlated with the first principal component. Only the absolute value of the correlation between L2000 and PC1 is also higher than 0.5 but since L2000 has a higher absolute value of correlation with PC2 and the correlation with PC1 (0.5401) is only just over 0.5 one can safely assume that PC1 mainly represents L/R4000.
+One possible interpretation is that the drugs themselves are very similar and only the difference in the dosage leads to significantly different effects. 
 
 ```{r}
 biplot(pr.out, choices = c(1,2))
