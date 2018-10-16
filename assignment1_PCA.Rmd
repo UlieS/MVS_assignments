@@ -32,7 +32,6 @@ First of all the first column has to be eliminated, as it only stores the ID val
 
 ```{r}
 drugdata <- drugdata[-1]
-glimpse(drugdata)
 ```
 
 One can also see that all the remaining values are of class integer. This is important to know, as correlation matrices can only be calculated using either integers or numerical values. After selecting the relevant variables, it is also useful to check for missing values. This is done by using the apply-function, which outputs the amount of missing values for each column.
@@ -53,7 +52,7 @@ As one would expect, the range of the variables increase as the dose increases. 
 
 \section{3. Assumptions}
 
-When dealing with PCA there is basically one assumption which has to be met, namely the variables have to be either mean centered or standardized. As all variables are measured in the same scale (from 0% to 100%) the variance observed to not artificial, but important information which has to be considered. For example, if higher drug doses lead to a higher variance then this information has to be included in the model. Therefore mean centering is applied when perfoming PCA. This is done in the upcoming section when using the prcomp-function with the center parameter set to TRUE. 
+When dealing with PCA there is basically one assumption which has to be met, namely the variables have to be either mean centered or standardized. As all variables are measured in the same scale (from 0% to 100%) the variance observed to not artificial, but important information which has to be considered. For example, if higher drug doses lead to a higher variance then this information has to be included in the model. Therefore mean centering is applied when perfoming PCA. This is done in the upcoming section when using the prcomp-function with the center parameter set to TRUE, which is the default setting of this function. 
 
 \section{4. Method}
 
@@ -62,7 +61,7 @@ Before applying the method the first task is to identify the appropriate number 
 The scree plot is just the visualization of the eigenvalues in decreasing order. Hence, in the following chunk the eigenvalues are extracted from the correlation matrix of the data and the eigenvalues are ploted. The red line highlights the threshold value of one.
 
 ```{r}
-# Eigenvalues
+# Eigenvalues of correlation matrix
 eval <- eigen(cor(drugdata))$values
 
 # Scree Plot
@@ -92,7 +91,7 @@ title(main= "Horn's parallel procedure - 5% lower percentile")
 - Perform PCA
 
 ```{r}
-pr.out <- prcomp(scale(drugdata, center = T))
+pr.out <- prcomp(drugdata)
 ```
 
 
@@ -115,9 +114,9 @@ lines(cumsum(prop_varex), type = "b", lty = 3)
 \section{5. Interpretation}
 
 ```{r}
-# Eigenvectors
+# Eigenvectors and eigenvalues of covariance matrix
 evec <- pr.out$rotation
-
+eval <- pr.out$sdev^2
 
 # Correlation coefficients between PC's and initial variables
 varnames <- names(drugdata)
