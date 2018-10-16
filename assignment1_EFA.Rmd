@@ -95,33 +95,37 @@ As there is an infinite number of different factoring solutions, rotations are a
 ```{r}
 
 # Perform Factor Analysis
-fa.out.pa <- fa(r = corr, nfactors = 2, fm="pa", rotate = "varimax", residuals = TRUE, SMC=FALSE)
-summary(fa.out.pa)
-
-fa.out.ml <- fa(r = corr, nfactors = 2, fm="ml", rotate = "varimax", residuals = TRUE, SMC=FALSE, 
+fa.out.ml <- fa(r = corr, nfactors = 2, fm="ml", rotate = "varimax", residuals = TRUE, SMC=FALSE,
                 max.iter = 10)
+
+fa.out.pa <- fa(r = corr, nfactors = 2, fm="pa", rotate = "varimax", residuals = TRUE, SMC=FALSE)
+fa.out.pa
+
 
 
 ```
 
 
 \section{5. Interpretation of Solution}
-As it is the objective of EFA to explore the variable structure, the labeling of meaningful latent factors is ambigious. Maximum likelihood and principal factoring achieved very similar results, both generating a root mean square of the residuals (RMSR) of 0.04. This measure indicates the sum of remaining error components, which is desired to be small. 
-Both factoring methods also generated the same variable groupings implied by the factor loadings. \newline
-
-In regard of rotation approaches, varimax provided the better possible factor explanation as 14 variables were loading higher on the first Factor and the rest on the second. Quartimax resulted in all but one variable loading on the first factor, which we did not consider as a useful split.\newline
+As it is the objective of EFA to explore the variable structure, the labeling of meaningful latent factors is ambigious. Maximum likelihood and principal factoring achieved very similar results, both generating the same root mean square of the residuals (RMSR) of 0.04 and the same variable groupings implied by the factor loadings. 
+The RMSR measure indicates the sum of remaining error components, which is desired to be small. The factor model explained a cumulative variance of 0.45. However, the RMSR is the most important measure for the quality of the model.
+ \newline
+In regard of rotation approaches, varimax provided the better possible factor explanation as 14 variables were loading higher on the first factor and the rest on the second. Quartimax resulted in all but one variable loading on the first factor, which we did not consider a useful split. \newline
 We thought of two possible interpretations of the structure. Variables loading strong on the first factor PA1 included statements such as "Lack of confidence during tests" (x1),  "Heart beating fast during tests" (x18), "Screening bothers me" (x12) which we labeled as "self-confidence during test situations" or "high intense anxiety". The latent factor of the other group of variables (PA2) consisted of statements such as "Thinking about test results" (x3), "The harder I try to contain myself, the less assured I get" (x6), "Defeat myself during tests" (x14) and can be called "self-manipulative thoughts during test situations" or "low intense anxiety".\newline 
-A full structural diagram can be seen below. From the Factor loadings plot we can graphically verify that the varibles load higher on one of the factors and very few (x4 and x20) share similarly high laodings with both. 
+A full structural diagram displaying the variable groupings can be seen below. 
 
-
-```{r, fig.height= 4, fig.width= 4}
-# Plot of factor loadings
-plot(fa.out.ml, title = "Factor loadings")
-```
 
 ```{r}
 # Structural diagram
 fa.diagram(fa.out.pa, main = "Structural diagram")
 ```
+
+```{r, fig.height= 4, fig.width= 4}
+# Plot of factor loadings
+plot(fa.out.pa, title = "Factor loadings")
+```
+
+From the factor loadings plot we can graphically verify that the varibles load higher on one of the factors and very few (x4 and x20) share similarly high laodings with both. We can conclude that this factor model captures useful information about the structure of the measured variables. Specifically one group of variables shares the component PA1 of "self-confidence during test situations" or "high intense anxiety" and the other one can be regarded as "self-manipulative thoughts during test situations" or "low intense anxiety". 
+
 
 
