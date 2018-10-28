@@ -1,0 +1,237 @@
+---
+title: "Assignment 2: Task 1 - CFA"
+author: "Group 11"
+date: "30.10.2018"
+output: pdf_document
+---
+\section{0. Load Libraries}
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lavaan)
+library(semPlot)
+library(lessR)
+```
+
+\section{1. Problem Statement}
+
+We are given a covariance matrix and other descriptive statistics (mean, standard deviation, number of observations) of 8 variables that are assumed to measure abilities of professional basketball players. The task is to check whether a hypothesized model with two latent factors called "frontcourt skills" and "backcourt skills" fits the variance/covariance structure of the given data well, compare this model to another with three latent factors and finally perform a test for equality of two parameters. The goal is to find shared structures in the variances of the variables, i.e. factors that have an influence on groups of variables and can therefore be determined underlying unobservable factors that help explaining the variance/covariance structure of the data.
+
+\section{2. Descriptive Statistics}
+
+With only the variance matrix there is no possibility of checking for outliers in the data. One can see from looking at the complete table that the means of X3 and X8 and are substantially higher than the rest. This is not important for the analysis and can be safely ignored.
+ 
+```{r}
+basketdf <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/basketball.txt", header=T)
+basket_cov <- basketdf %>% filter(X_TYPE_ == "COV") %>% select(2:ncol(basketdf))
+rownames(basket_cov) <- colnames(basket_cov)
+basket_cov <- as.matrix(basket_cov)
+basketdf %>% filter(X_TYPE_ != "COV")
+
+```
+
+\section{3. Assumptions}
+
+The only necessary condition to obtain meaningful results is that the number of inputs (unique values in variance/covariance matrix) is higher than the number of estimated parameters. Here we have 8 variables so our number of inputs is (8*(8+1))/2=36. For the first model we estimate 8 loadings, 8 error variances of the variables and 1 covariance between factors which lead to a total of 17 estimated parameters. The model is therefore well identified (as is the second model where 19 parameters are estimated). We confirm this with the inspect function where nonzero integers in the output are parameters that are to be estimated.
+
+```{r}
+# Specify two-factor model
+model1 <- '
+# latent variables
+backcourt =~ X1 + X2 + X3 + X4
+frontcourt =~ X5 + X6 + X7 + X8
+'
+fit1 <- lavaan::sem(model1, sample.nobs = 320, sample.cov = basket_cov, orthogonal = F)
+
+# Show number of estimated parameters
+inspect(fit1)$psi
+```
+
+\section{4. Method and interpretation}
+
+Part A:
+
+The model was already fit in section 3 with the sem function from the lavaan package. To assess the model fit we constructed a function that computes the goodness-of-fit (GFI) because this indicator is not given in the output of lavaan.
+
+```{r}
+# Specify GFI function
+GFI <- function(Si, Sobs){
+  if( class(Si) == "list"){
+    Si <- as.matrix(as.data.frame(Si$cov))
+  }
+  
+  nominator <- sum(diag(solve(Si) %*% Sobs - diag(ncol(Sobs))))^2
+  denominator <- sum(diag(solve(Si) %*% Sobs))^2
+  return(1 - (nominator / denominator))
+}
+```
+
+By using the summary, resid and modindices functions of the lavaan package the model is inspected. Overall the model does not fit the data well, for example the null hypothesis that the estimated covariance matrix is equal to the observed covariance matrix is rejected with a p-value of 0.
+
+```{r}
+# Analysis of model fit
+summary(fit1,fit.measures = TRUE, estimates = F)
+GFI(Si = fitted(fit1), Sobs = basket_cov)
+# GFI > 0.95 --> good
+# Baseline model and specified model p-value < 5% --> bad
+# Comparative Fit index 0.892 < 0.95 --> bad
+# All coefficients significant --> good
+# --> overall bad model fit
+```
+
+```{r}
+# Display standardized residuals
+resid(fit1, type = "standardized")
+# Largest standardized residuals > 1.96
+# X4, X3: 6.089
+# X7, X6: -5.744
+# X8, X1: 3.842
+# X3, X1: -3.381
+# X2, X1: 3.282
+# X8, X6: 3.243
+# X6, X5: 2.924
+# X8, X2: 2.795
+# X7, X3: -2.563
+```
+
+
+```{r}
+# Calculate modification indices
+modindices(fit1, sort. = T, minimum.value = 2)
+```
+
+
+```{r}
+# Plot of standardized and unstandardized loading estimates
+par(mfrow=c(1,2))
+semPaths(fit1, "est",edge.label.cex = 1.4, curvePivot = TRUE)
+title("SEM 1 (non standardized)", line = 3)
+semPaths(fit1, "std",edge.label.cex = 1.4, curvePivot = TRUE)
+title("SEM 1 (standardized)", line = 3)
+par(mfrow=c(1,1))
+```
+
+Part B:
+
+The model is respecified by splitting the backcourt factor into 2 factors: "shooting skills" and "neuromuscular coordination" while the frontcourt factor is equivalent to the first model.
+
+```{r}
+# Specify three factor model
+model2 <- '
+# latent variables
+shoot =~ X1 + X2
+neuro =~ X3 + X4
+frontcourt =~ X5 + X6 + X7 + X8
+'
+
+# Fitting the model
+fit2 <- lavaan::sem(model2, sample.nobs = 320, sample.cov = basket_cov, orthogonal = F)
+
+# Analysis of model fit
+summary(fit2,fit.measures = TRUE, estimates = F)
+GFI(Si = fitted(fit2), Sobs = basket_cov)
+# GFI > 0.95 --> good
+# Baseline model and specified model p-value < 5% --> bad
+# Comparative Fit index 0.975 > 0.95 --> good 
+# All coefficients significant --> good
+# AIC: 2100.703 < 2156.084 --> model2 better
+# BIC: 2172.301 < 2220.145 --> model2 better
+```
+
+
+```{r}
+resid(fit2, type = "standardized")
+# Largest standardized residuals > 1.96
+# X7, X6: -5.924
+# X8, X1: 3.867
+# X8, X6: 3.280
+# X6, X5: 2.952
+# X7, X1: -2.386
+# X8, X2: 2.249
+# X8, X3: 2.218
+```
+
+
+```{r}
+# Calculate modification indices
+modindices(fit2, sort. = T, minimum.value = 2)
+```
+
+
+```{r}
+# Plot of standardized and unstandardized loading estimates
+par(mfrow=c(1,2))
+semPaths(fit2, "est",edge.label.cex = 1.4, curvePivot = TRUE)
+title("SEM 2 (non standardized)", line = 3)
+semPaths(fit2, "std",edge.label.cex = 1.4, curvePivot = TRUE)
+title("SEM 2 (standardized)", line = 3)
+par(mfrow=c(1,1))
+```
+
+The second model has a higher GFI, both a lower AIC and BIC but still a p-value of 0. It is thus better than the first odel but still not a very good fit to the data. 
+The model could probably be improved by introducing new factor for X6 and X7 and/or a loading of the factor shooting skills on X8 (these two have the highest mi value in the modindices output).
+
+Part C:
+
+In order to be able to test whether the loadings of X7 and x8 are the same, a two sided t-test using the standardized loadings needs to be applied. The null hypothesis is that the loadings are equal, whereas the alternative hypothesis is that both values are unequal. The significance level is set to five percent and the remaining degrees of freedom are 301, as 19 variables were estimated. 
+
+```{r}
+# Extract standardized estimates and standard errors
+estX7X8 <- standardizedSolution(fit2)$est.std[7:8] 
+seX7X8 <- standardizedSolution(fit2)$se[7:8] 
+
+# Set significance level
+alpha <- 0.05
+
+# Calculate t-statistic
+tStat <- ((estX7X8[1] - estX7X8[2]) / seX7X8[1])
+
+# Decide whether to reject H0 or not
+# TRUE: Reject H0
+# FALSE: Accept H0
+ifelse(tStat < 0, tStat < -qt(p=1-(alpha/2), df=320-19),
+                  tStat > qt(p=1-(alpha/2), df=320-19))
+
+```
+
+The resulting test statistic is equal to 13.34606, which is much larger then the threshold value of approximately 1.94. Therefore the null hypothesis can be rejected, meaning that the loadings are significantly different from each other.
+
+\section{5. Alternative solutions}
+
+```{r}
+modelAlt <- '
+# latent variables
+offensive =~ X1 + X2 + X3 + X5
+defensive =~ X4 + X6 + X7 + X8
+'
+
+# Fitting the model
+fit3 <- lavaan::sem(modelAlt, sample.nobs = 320, sample.cov = basket_cov, orthogonal = F)
+GFI(Si = fitted(fit3), Sobs = basket_cov)
+```
+
+
+\section{6. Conclusion}
+
+???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
