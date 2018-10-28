@@ -1,176 +1,182 @@
 ---
-title: "Assignment 1: Task 1 - PCA"
+title: "Assignment 2: Task 1 - CFA"
 author: "Group 11"
-date: "16.10.2018"
+date: "30.10.2018"
 output: pdf_document
 ---
 \section{0. Load Libraries}
 
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
-library(nFactors)
+library(lavaan)
+library(semPlot)
+library(lessR)
 ```
-
 
 \section{1. Problem Statement}
 
-The presented data from a conducted study shows the recovery status for 100 participants after taking two different drugs with differing doses. Recovery is measured as the percentage drop in body pathogens before and after taking the respective drug. In order to judge on the effectiveness of the drugs the principal component analysis is applied, to shrink the information to only a subset of the variables' dimensions. The associated identification of useful factor brandings and the reflection of the data on the identified subdimensions should help to evaluate the initial question. \
-
-The second section starts with the data preparation and a brief description of the data. Afterwards, in section three, the assumptions for using principal component analysis are described including the way we deal with them. In section four the principal component analysis is applied and the most relevant outputs are described. The last section covers the answering of first, how the factors in the subspace can be labled appropriately and second, which drugs were effective.
+We are given a covariance matrix and other descriptive statistics (mean, standard deviation, number of observations) of 8 variables that are assumed to measure abilities of professional basketball players. The task is to check whether a hypothesized model with two latent factors called "frontcourt skills" and "backcourt skills" fits the variance/covariance structure of the given data well, compare this model to another with three latent factors and finally perform a test for equality of two parameters. The goal is to find shared structures in the variances of the variables, i.e. factors that have an influence on groups of variables and can therefore be determined underlying unobservable factors that help explaining the variance/covariance structure of the data.
 
 \section{2. Descriptive Statistics}
 
-Before dealing with the principal component analysis (PCA), it is important to prepare the data. After importing the data and performing the glimpse-function, one can see that the data is stored in a data.frame object with the dimension 100 x 9. 
+With only the variance matrix there is no possibility of checking for outliers in the data. One can see from looking at the complete table that the means of X3 and X8 and are substantially higher than the rest. This is not important for the analysis and can be safely ignored.
+ 
 
 ```{r}
-# Load data
-drugdata <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/drugsrecovery.txt", 
-                       header=T)
-# Show class of drugdata object
-class(drugdata)
+basketdf <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/basketball.txt", header=T)
+basket_cov <- basketdf %>% filter(X_TYPE_ == "COV") %>% select(2:ncol(basketdf))
+rownames(basket_cov) <- colnames(basket_cov)
+basket_cov <- as.matrix(basket_cov)
+basketdf
 
-# Show structure of dataframe
-glimpse(drugdata)
 ```
-
-First of all the first column has to be eliminated, as it only stores the ID values. It would be a major mistake taking this column into account when performing PCA, as the results would be heavily biased. 
-
-```{r}
-# Eliminate first column
-drugdata <- drugdata[-1]
-```
-
-One can also see that all the remaining values are of class integer. This is important to know, as correlation matrices can only be calculated using either integers or numerical values. After selecting the relevant variables, it is also useful to check for missing values. This is done by using the apply-function, which outputs the amount of missing values for each column.
-
-```{r}
-# Check for missing values
-drugdata %>% apply(2, function(x){
-  sum(is.na(x))
-}) 
-```
-
-Hence, there arent any missing values presented in the data. Even though the PCA has no distributional assumptions regarding the data it might still be useful to get an idea of the distribution of the variables.
-
-```{r}
-# Extract 6-point statistic
-summary(drugdata)
-```
-
-As one would expect, the range of the variables increase as the dose increases. Taking into consideration that the minimum of each variable is equal to five, this means that due to the higher dose there might be at least some participants whose percentage drop in body pathogens was quite high compared to the participants who got a lower dose. This can also be derived when looking at the mean values or the outlier resistant median values. This might give rise to the assumption that higher dose is more effective. 
 
 \section{3. Assumptions}
 
-When dealing with PCA there is basically one assumption which has to be met, namely the variables have to be either mean centered or standardized. As all variables are measured in the same scale (from 0% to 100%) the variance observed to not artificial, but important information which has to be considered. For example, if higher drug doses lead to a higher variance then this information has to be included in the model. Therefore only mean centering is applied when perfoming PCA. This is done in the upcoming section when using the prcomp-function with the center parameter set to TRUE, which is the default setting in this function. 
+The only necessary condition to obtain meaningful results is that the number of inputs (unique values in variance/covariance matrix) is higher than the number of estimated parameters. Here we have 8 variables so our number of inputs is (8*(8+1))/2=36. For the first model we estimate 8 loadings, 8 error variances of the variables and 1 covariance between factors which lead to a total of 17 estimated parameters. The model is therefore well identified (as is the second model where 19 parameters are estimated). We confirm this with the inspect function where nonzero integers in the output are parameters that are to be estimated.
 
-\section{4. Method}
-
-Before applying the method the first task is to identify the appropriate number of principal components that effectively summarize the data. Hence, we will decide based on two commonly used procedures. First by visually analyzing the scree plot and second by performing Horn's Parallel procedure. \
-
-The scree plot is just the visualization of the eigenvalues in decreasing order. Hence, in the following chunk the eigenvalues are extracted from the correlation matrix of the data and the eigenvalues are ploted. The red line highlights the threshold value of one.
 
 ```{r}
-# Calculate eigenvalues of correlation matrix
-evalcor <- eigen(cor(drugdata))$values
-
-# Scree plot
-plot(evalcor, xlab = "Principal component", ylab = "Eigenvalue",
-     type = "b", main = "Scree Plot")
-abline(h=1,col="red")
-
+# Specify two-factor model
+model1 <- '
+# latent variables
+backcourt =~ X1 + X2 + X3 + X4
+frontcourt =~ X5 + X6 + X7 + X8
+'
+fit1 <- lavaan::sem(model1, sample.nobs = 320, sample.cov = basket_cov, orthogonal = F)
+#number of estimated parameters
+inspect(fit1)
+inspect(fit1,"est")
 ```
 
-The first characteristic to find would be the so called elbow, which separates the mountain from the debris. As the slope has almost an exponential form, it is difficult to see whether such a distinction can be made. The second criterion to check is to identify which eigenvalues lay above the threshold value of one und which lay below. The first and the second principal component are clearly above the threshold value. The third principal component is a borderliner, as it's value of 0.9753248 lies slightly below the threshold value.
+\section{4. Method and interpretation}
 
-Using Horn’s Parallel procedure might give a clearer understanding, especially regarding the borderline value. Here, eigenvalues associated with many simulated uncorrelated normal variables are computed. A principal component is then retained, if it's eigenvalue is bigger than the 95th percentile of the simulated eigenvalue distribution. 
+Part A:
 
-```{r}
-# Perform Horn's Parallel Procedure
-ap <- parallel(subject = nrow(drugdata), var = 8, rep = 1000,cent = 0.05)
-
-# 5% lower percentile on eigenvalues plot
-plot(evalcor, xlim=c(0,ncol(drugdata)), ylim = c(0,max(evalcor)), 
-     ylab = "Eigenvalues")
-lines(ap$eigen$qevpea, type = "o",pch = 15, lwd = 2,col = "red")
-title(main = "Horn's parallel procedure - 5% lower percentile")
-
-```
-
-When plotting the 5% lower percentile together with the eigenvalues of the correlation matrix, one can clearly see that the first two eigenvalues are clearly above the line and the third one below. Hence, the first two principal component are taken into account in the further analysis. \
-
-The PCA is performed using the prcomp function of the stats package. The default value of the parameter center is TRUE and FALSE for the scale parameter, which is exactly the configuration required. Therefore, the data is included and the results are saved in the object pr.out. Note that the analysis is done using the covariance matrix, if the scale parameter is set to FALSE.
+The model was already fit in section 3 with the sem function from the lavaan package. To assess the model fit we constructed a function that computes the goodness-of-fit (GFI) because this indicator is not given in the output of lavaan.
 
 ```{r}
-# Perform PCA
-pr.out <- prcomp(drugdata)
-
-# Investigate importance of components
-summary(pr.out)
-
-# Variance explained plot
-sum <- summary(pr.out)
-plot(sum$importance[2,], xlab = "Principal Component", 
-     ylab = "Proportion of variance explained", type = "b", 
-     main = "Variance explained", ylim = c(0,1))
-lines(cumsum(sum$importance[2,]), type = "b", lty = 3)
-```
-
-It is interesting to see how much variance is explained using the first two principal components. By using the summary function one can see that 61.22% of the variance is explained by the first principal component and 76.22% is explained when including the second principal component.
-
-\section{5. Interpretation}
-
-In order to be able to interpret the data in the two-dimensional eigenvector space the correlation coefficients between the principal components and original variables, which are also called structural loadings, have to be calculated and interpreted. As the model is performed using the covariance matrix, the eigenvalues and eigenvectors of that matrix are needed. The structural loadings are then calculated as follows: 
-
-\begin{align}
-& corr(PC_j, x_k) = \frac{e_{jk}\sqrt{\lambda_j}}{s_k}.
-\end{align}
-
-```{r}
-# Extract eigenvectors and eigenvalues of covariance matrix
-evec <- pr.out$rotation
-eval <- pr.out$sdev^2
-
-# Structural loadings calculation
-varnames <- names(drugdata)
-strloadings <- matrix(nrow = 2, ncol = ncol(drugdata), byrow = T)
-colnames(strloadings) <- varnames
-rownames(strloadings) <- c("PC1", "PC2")
-
-for( n in 1:length(rownames(strloadings)) ){
-  for( m in 1:nrow(evec) ){
-    strloadings[n,m] <- evec[m,n] * sqrt(eval)[n] / sd(drugdata[,m])
+GFI <- function(Si, Sobs){
+  if( class(Si) == "list"){
+    Si <- as.matrix(as.data.frame(Si$cov))
   }
+  
+  nominator <- sum(diag(solve(Si) %*% Sobs - diag(ncol(Sobs))))^2
+  denominator <- sum(diag(solve(Si) %*% Sobs))^2
+  return(1 - (nominator / denominator))
 }
-strloadings
 ```
 
-The structural loadings show a clear distinction between the highest dose of both drugs (L4000 and R4000) and the lower doses (L/R500 to L/R2000). The two highest doses are very highly negatively correlated with the first principal component. Only the absolute value of the correlation between L2000 and PC1 is also higher than 0.5 but since L2000 has a higher absolute value of correlation with PC2 and the correlation with PC1 (0.5401) is only just over 0.5 one can safely assume that PC1 mainly represents L/R4000.
-One possible interpretation is that the drugs themselves are very similar and only the difference in the dosage leads to significantly different effects. The most logical labels for the two PCs that are used are: 
-
-\begin{itemize}  
-\item PC1: Highest dose (4000)
-\item PC2: Low doses (500-2000).
-\end{itemize}
+By using the summary, resid and modindices functions of the lavaan package the model is inspected. Overall the model does not fit the data well, for example the null hypothesis that the estimated covariance matrix is equal to the observed covariance matrix is rejected with a p-value of 0.
 
 ```{r}
-# PC scores plot
-plot(pr.out$x[,1], pr.out$x[,2], xlab = "PC1: Highest dose", 
-     ylab = "PC2: Lower doses", main = "Plot of PC-scores")
-abline(v=0, h=0)
+# Analysis of model fit
+summary(fit1,fit.measures=TRUE)
+GFI(Si = fitted(fit1), Sobs = basket_cov)
+# GFI > 0.95 --> good
+# Baseline model and specified model p-value < 5% --> bad
+# Comparative Fit index 0.892 < 0.95 --> bad
+# --> overall bad model fit
+
+resid(fit1, type = "standardized")
+# Largest standardized residuals > 1.96
+# X4, X3: 6.089
+# X7, X6: -5.744
+# X8, X1: 3.842
+# X3, X1: -3.381
+# X2, X1: 3.282
+# X8, X6: 3.243
+# X6, X5: 2.924
+# X8, X2: 2.795
+# X7, X3: -2.563
+
+modindices(fit1, sort. = T)
+# mi: Modification indices (LM stat in SAS)
+# epc: Expected parameter change (Parm Change in SAS)
+# sepc.lv: Standardized value of epc based on variances of latent variables
+# sepc.all: Standardized value of epc based on variances of latent and observed variables
+
+# If covariance between X3 and X4 would be estimated, then reduction in (n-1)F
+# of 43.828
+
+# Plot using standardized loading estimates
+semPaths(fit1, "std",edge.label.cex = 1.4, curvePivot = TRUE)
 ```
 
-The plot of PC-scores enables us to discriminate between four kinds of patients: Patients, who responded well to both drugs (upper right), patients who only responded well to high doses (lower right), patients who only responded well to lower doses (upper left) and patients who did not respond well to any of the doses (lower left). A good response to a drug is supposed when the patient's mean pathogen drop is higher than the mean pathogen drop. One can also see that the patients who did not respond well to the highest dose (left from $x=0$) have a higher variance of pathogen drop level, i.e. the points on the left of the plot are more spread out than on the right.
+Part B:
 
+The model is respecified by splitting the backcourt factor into 2 factors: "shooting skills" and "neuromuscular coordination" while the frontcourt factor is equivalent to the first model.
 
 ```{r}
-# Biplot
-biplot(pr.out, choices = c(1,2), cex=c(0.6,0.8), xlab = "PC1: Highest dose", 
-       ylab = "PC2: Lower doses", main = "Biplot")
+model2 <- '
+# latent variables
+shoot =~ X1 + X2
+neuro =~ X3 + X4
+frontcourt =~ X5 + X6 + X7 + X8
+'
 
+fit2 <- lavaan::sem(model2, sample.nobs = 320, sample.cov = basket_cov, orthogonal = F)
+
+# Analysis of model fit
+summary(fit2,fit.measures=TRUE)
+GFI(Si = fitted(fit2), Sobs = basket_cov)
+# GFI > 0.95 --> good
+# Baseline model and specified model p-value < 5% --> bad
+# Comparative Fit index 0.975 > 0.95 --> good 
+# AIC: 2100.703 < 2156.084 --> model2 better
+# BIC: 2172.301 < 2220.145 --> model2 better
+
+resid(fit2, type = "standardized")
+# Largest standardized residuals > 1.96
+# X7, X6: -5.924
+# X8, X1: 3.867
+# X8, X6: 3.280
+# X6, X5: 2.952
+# X7, X1: -2.386
+# X8, X2: 2.249
+# X8, X3: 2.218
+
+modindices(fit2, sort. = T)
+# Maybe introduce forth factor containing X6, X7
+
+
+# Plot using standardized loading estimates
+semPaths(fit2, "std",edge.label.cex = 1.4, curvePivot = TRUE)
 ```
 
-The biplot supports the assumption that the doses make a larger difference in percentage drop than the kind of drug (i.e. R or L). This is visible through the angles between the vectors that represent the variables. R4000 and L4000 are highly correlated with each other but almost uncorrelated with the rest of the doses for both drugs (orthogonal vectors mean a correlation of 0 because $cos(90)=0)$.
+The second model has a higher GFI, both a lower AIC and BIC but still a p-value of 0. It is thus better than the first odel but still not a very good fit to the data. 
+The model could probably be improved by introducing new factor for X6 and X7 and/or a loading of the factor shooting skills on X8 (these two have the highest mi value in the modindices output).
 
-The vectors for R/L4000 are clearly longer than those for the rest of the drugs and doses. One can conlcude that R/L4000 include a higher ratio of the explained variance than the others. This is supported by the fact that the first PC explains roughly 61% of the variance and it almost only contains R/L4000.
+Part C:
+
+```{r}
+#test for equality of X7 and X8
+```
+
+\section{5. Alternative solutions}
+
+??Maybe specify another model??
+
+\section{6. Conclusion}
+
+???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
