@@ -21,7 +21,6 @@ We are given a covariance matrix and other descriptive statistics (mean, standar
 
 With only the variance matrix there is no possibility of checking for outliers in the data. One can see from looking at the complete table that the means of X3 and X8 and are substantially higher than the rest. This is not important for the analysis and can be safely ignored.
  
-
 ```{r}
 basketdf <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/basketball.txt", header=T)
 basket_cov <- basketdf %>% filter(X_TYPE_ == "COV") %>% select(2:ncol(basketdf))
@@ -34,7 +33,6 @@ basketdf
 \section{3. Assumptions}
 
 The only necessary condition to obtain meaningful results is that the number of inputs (unique values in variance/covariance matrix) is higher than the number of estimated parameters. Here we have 8 variables so our number of inputs is (8*(8+1))/2=36. For the first model we estimate 8 loadings, 8 error variances of the variables and 1 covariance between factors which lead to a total of 17 estimated parameters. The model is therefore well identified (as is the second model where 19 parameters are estimated). We confirm this with the inspect function where nonzero integers in the output are parameters that are to be estimated.
-
 
 ```{r}
 # Specify two-factor model
@@ -90,14 +88,8 @@ resid(fit1, type = "standardized")
 # X8, X2: 2.795
 # X7, X3: -2.563
 
+# Calculate modification indices
 modindices(fit1, sort. = T)
-# mi: Modification indices (LM stat in SAS)
-# epc: Expected parameter change (Parm Change in SAS)
-# sepc.lv: Standardized value of epc based on variances of latent variables
-# sepc.all: Standardized value of epc based on variances of latent and observed variables
-
-# If covariance between X3 and X4 would be estimated, then reduction in (n-1)F
-# of 43.828
 
 # Plot using standardized loading estimates
 semPaths(fit1, "std",edge.label.cex = 1.4, curvePivot = TRUE)
@@ -115,6 +107,7 @@ neuro =~ X3 + X4
 frontcourt =~ X5 + X6 + X7 + X8
 '
 
+# Fitting the model
 fit2 <- lavaan::sem(model2, sample.nobs = 320, sample.cov = basket_cov, orthogonal = F)
 
 # Analysis of model fit
@@ -139,7 +132,6 @@ resid(fit2, type = "standardized")
 modindices(fit2, sort. = T)
 # Maybe introduce forth factor containing X6, X7
 
-
 # Plot using standardized loading estimates
 semPaths(fit2, "std",edge.label.cex = 1.4, curvePivot = TRUE)
 ```
@@ -149,9 +141,25 @@ The model could probably be improved by introducing new factor for X6 and X7 and
 
 Part C:
 
+In order to be able to test whether the loadings of X7 and x8 are the same, a two sided t-test using the standardized loadings needs to be applied. The null hypothesis is that the loadings are equal, whereas the alternative hypothesis is that both values are unequal. The significance level is set to five percent and the remaining degrees of freedom are 301, as 19 variables were estimated. 
+
 ```{r}
-#test for equality of X7 and X8
+# Test whether loadings of X7 and X8 are the same (t-Test)
+estX7X8 <- standardizedSolution(fit2)$est.std[7:8] # estimates
+seX7X8 <- standardizedSolution(fit2)$se[7:8] # standard errors
+
+# H0: X7 = X8
+# H1: X7 != X8
+alpha <- 0.05
+
+# One of the folliwing lines has to be TRUE in order to reject H0
+((estX7X8[1] - estX7X8[2]) / seX7X8[1]) > qt(p=1-(alpha/2), df=320-19)
+# OR
+((estX7X8[1] - estX7X8[2]) / seX7X8[1]) < -qt(p=1-(alpha/2), df=320-19)
+
 ```
+
+The resulting test statistic is equal to 13.34606, which is much larger then the threshold value of approximately 1.94. Therefore the null hypothesis can be rejected, meaning that the loadings are significantly different from each other.
 
 \section{5. Alternative solutions}
 
