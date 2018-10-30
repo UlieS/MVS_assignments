@@ -22,7 +22,8 @@ We are given a covariance matrix and other descriptive statistics (mean, standar
 With only the variance matrix there is no possibility of checking for outliers in the data. One can see from looking at the complete table that the means of X3 and X8 and are substantially higher than the rest. This is not important for the analysis and can be safely ignored.
  
 ```{r}
-basketdf <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/basketball.txt", header=T)
+basketdf <- read.table("http://feb.kuleuven.be/martina.vandebroek/public/STATdata/basketball.txt", 
+                       header=T)
 basket_cov <- basketdf %>% filter(X_TYPE_ == "COV") %>% select(2:ncol(basketdf))
 rownames(basket_cov) <- colnames(basket_cov)
 basket_cov <- as.matrix(basket_cov)
@@ -67,7 +68,7 @@ GFI <- function(Si, Sobs){
 }
 ```
 
-By using the summary, resid and modindices functions of the lavaan package the model is inspected. Overall the model does not fit the data well, for example the null hypothesis that the estimated covariance matrix is equal to the observed covariance matrix is rejected with a p-value of 0.
+By using the summary (see output in Appendix), resid and modindices functions of the lavaan package the model are inspected. Overall the model does not fit the data well, for example the null hypothesis that the estimated covariance matrix is equal to the observed covariance matrix is rejected with a p-value of 0.
 
 Overall the model does not fit the data well, the null hypothesis that the estimated covariance matrix is equal to the observed covariance matrix is rejected with a p-value of 0 and the comparative fit index (CFI) which compares the model with a baseline null model is 0.892. This value indicates that the model, while being better than the baseline model, can not be considered a good enough improvement to the baseline model. The GFI on the other hand is equal to 0.9999902. This tells us that the calculated covariance matrix (Si) is very similar to the observed one (Sobs). Finally, all estimated parameters are significant (the output of the summary function was deprecated, so that it does not show the parameter estimates because we do not interpret them in any way, the estimates were, however, checked and turned out to be significant).
 
@@ -99,7 +100,7 @@ Here, two path plots are shown to illustrate the underlying model specification 
 
 Part B:
 
-The model is respecified by splitting the backcourt factor into 2 factors: "shooting skills" and "neuromuscular coordination" while the frontcourt factor is equivalent to the first model.
+The model is respecified by splitting the backcourt factor into 2 factors: "shooting skills" and "neuromuscular coordination" while the frontcourt factor is equivalent to the first model. See again the output values of the summary function in the Appendix.
 
 ```{r}
 # Specify three factor model
@@ -179,7 +180,7 @@ defensive =~ X4 + X6 + X7 + X8
 fit3 <- lavaan::sem(modelAlt, sample.nobs = 320, sample.cov = basket_cov, orthogonal = F)
 ```
 
-Analysing the fit criteria results in the model being a bad one. The null hypothesis that the estimated covariance matrix is equal to the observed covariance matrix is rejected. The CFI value of 0.885 is lower than the desired value of 0.95 and the GFI value of approximately 0.2136 is far below the threshold value aswell. The AIC and BIC values are also higher than the values from the other two values. 
+Analysing the fit criteria (see output in Appendix) results in the model being a bad one. The null hypothesis that the estimated covariance matrix is equal to the observed covariance matrix is rejected. The CFI value of 0.885 is lower than the desired value of 0.95 and the GFI value of approximately 0.2136 is far below the threshold value aswell. The AIC and BIC values are also higher than the values from the other two values. 
 
 ```{r}
 # Show modification indices greater than 10
@@ -190,7 +191,9 @@ One could improve this model by creating a new factor containing X3 and X4, whic
 
 \section{6. Conclusion}
 
-???
+The main purpose of CFA is to identify a certain factor model, which fits the data well based on several criteria, as mentioned above. After respecifying the first factor model, we came out with a better solution in terms of model fit. Nonetheless, this model could still not be completely validated, as the null hypothesis of the ${\chi}^2$ test is rejected. The proposed alternative model turns out to be worse than all the other models. 
+
+\newpage
 
 \section{Appendix}
 
@@ -200,11 +203,15 @@ summary(fit1,fit.measures = TRUE, estimates = F)
 GFI(Si = fitted(fit1), Sobs = basket_cov)
 ```
 
+\newpage
+
 ```{r}
 # Output of model 2 fit measures
 summary(fit2,fit.measures = TRUE, estimates = F)
 GFI(Si = fitted(fit2), Sobs = basket_cov)
 ```
+
+\newpage
 
 ```{r}
 # Output of model 3 fit measures
