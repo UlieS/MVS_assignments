@@ -1,7 +1,7 @@
 ---
 title: 'Assignment 1: Task 1 - CFA'
 author: "Group 11"
-date: ''
+date: '30.10.2018'
 output: pdf_document 
 ---
 \section{0. Load Libraries}
@@ -49,7 +49,8 @@ Additionally, equations must be greater than the estimated parameters or models 
 
 \section{4. Method}
 The objective of structural equation models is to explain the covariances of the observed variables in terms of the relationships of these variables to the assumed underlying latent variables and the relationships pos-
-tulated between the latent variables themselves. SEM involves estimating a number of model parameters from the observed covariance matrix $S^{obs}$ to minimize the difference between this matrix and a matrix $S^i$ implied by the fitted model. The most commonly used method of estimation for SEM is maximum likelihood under the assumption that the observed data have a multivariate normal distribution. As all the variables in our dataset are measureable constructs, we will conduct a path analysis, which is essentially a SEM without latent factors. The hypothesized model includes mostly direct effects, but also an indirect effect of X3 on Y1.
+tulated between the latent variables themselves. SEM involves estimating a number of model parameters from the observed covariance matrix $S^{obs}$ to minimize the difference between this matrix and a matrix $S^i$ implied by the fitted model. The most commonly used method of estimation for SEM is maximum likelihood under the assumption that the observed data have a multivariate normal distribution. Y1 and Y2 represent endogenous variables, which means that their variance is considered to be explained in part by other variables in the model.
+X1, X2 and X3 are exgoneous variables whose variance is assumed to be caused by variables not in the causal model.
 
 First, we construct the hypothesized model in lavaan syntax and execute the sem function with a Maximum Likelihood estimation. There are other estimation procedures, but ML is the most efficient when the dataset is large, the data are multivariate normal distributed and the input is a covariance matrix. All these assumptions are satisfied for our task.
 
