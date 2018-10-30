@@ -1,0 +1,214 @@
+---
+title: "Assignment 2: Task 2 - SEM"
+author: "Group 11"
+date: "30.10.2018"
+output: pdf_document
+---
+\section{0. Load Libraries}
+
+```{r, message=FALSE, warning=FALSE}
+library(lavaan)
+library(semPlot)
+library(plotrix)
+library(tidyverse)
+library(lessR)
+library(knitr)
+```
+
+
+\section{1. Problem Statement}
+
+The presented covariance matrix “advanced_basketball.txt” demonstrates three basic statistical measurements and two advanced measurements about offensive performance for 320 basketball players during the NBA 2017-2018 season. The relationship between a latent variable (Y1) and other variables is posited by the path model. In order to assess whether the provided model fits the data Structural Equation Model is implemented, checking goodness-of-fit index and other criteria, evaluating the estimates and modifying the model if it fits the data. 
+
+The second part focuses on the data preparation before assessment and a general description of the covariance matrix. And then, the theoretical assumptions of Structural Equation Model are explained in the section three. The section four contains the standard method of Structural Equation Model and how it works in this case. At last, a reasonable explanation, whether the provided model fits the data and how can the model be improved, is provided in the section five.
+
+\section{2. Descriptive Statistics}
+
+Given a covariance matrix with 320 observations and 5 variables, there are some preparations of the data which are done before implementing Structural Equation Model (SEM).
+
+```{r}
+# Load data
+advbasket_cov <- read.table("https://feb.kuleuven.be/public/u0004359/STATdata/advanced%20basketball.txt", 
+                            header=T)
+```
+
+First of all, the rows about covariance should be selected because the first three rows contain the information about mean, standard deviation and the number of observations. 
+
+```{r}
+# Eliminate first three rows and 
+advbasket_cov <- advbasket_cov %>% filter(X_TYPE_ == "COV") %>% select(2:ncol(advbasket_cov))
+```
+
+Further preparation is about giving the row name and column name of data set and determine the data type is matrix which is appropriate for computing.
+
+```{r}
+# Define the rownames and clonames, and transform the file type from dataframe to matrix
+rownames(advbasket_cov) = c("X1","X2","X3","Y1","Y2")
+colnames(advbasket_cov) = c("X1","X2","X3","Y1","Y2")
+advbasket_cov <- as.matrix(advbasket_cov)
+```
+
+Heatmap is applied for finding out the relationship between each variable and factor.
+
+```{r}
+# Plotting heat map
+color2D.matplot(cov2cor(advbasket_cov),show.values=4,axes=FALSE,xlab="",ylab="")
+axis(1,at=0.5:4.5,labels=rownames(advbasket_cov))
+axis(2,at=4.5:0.5,labels=colnames(advbasket_cov))
+```
+
+According to the heatmap, lighter colors represent a higher correlation between corresponding two variables. The extremum of correlations is extremely distributed as the maximum is higher than 0.9 and the minimum is lower than 0.2. Considerign the correlation between each variable, it is obvious that X1 and X3 is strongly correlated and the highly correlation exists within X1, X3 and the advanced variable Y1. X2 and X3 have a negative impact on Y2, this means with an increase in average number of assists and average number of shot attempts, the average estimate of shooting efficiency will decrease.
+
+\section{3. Assumptions}
+
+When dealing with Structural Equation Model, it is important to satisfy several statistical underlying assumptions to ensure accurate inferences. One of the underlying assumptions concerns that the observations should be derived form a continuous and multivariate normal population. In addition to normality data, the Structural Equation Model assumes that the model can be identified, which means that the number of parameters to be estimated is equal to or smaller than the number of inputs.
+
+\section{4. Method and Interpretation}
+
+Structural Equation Model is regraded as a combination of factor analysis and multiple regression analysis, and it aims at analysing the sturctural relationship between measured variables and latent constructs. Specifically, there are two basic models contained in the hypothesized model, that are measurement model which focuses on the relationships between observable (minifest) and inobservable (latent) variables, and structural model which concerns about causal relationships amont constructs.
+Generally, a Structural Equation Model might posit that one factor is predicted by another factor, in other words, a response variable Y is affected by a predictor variable X. The terminology for the model is to compare the difference between $S^{obs}$ and $S^{obs}$, and method maximum likelihood is commonly used to minimise the difference.
+
+Based on this case, we can obtain a model named 'model1' which illustrates the relationship between the basic statistical measurements (X1 - X3) and advanced measurements (Y1, Y2). Referring to the path model, Y1 is a latent variable (factor) that is predicted by X1 and X2 (measured variables), and also Y2 (a factor); X1 and X3 drive the advanced measurement Y2. Additionally, there is a line with the arrow at both ends connecting X1 and X3, this means there is a relationship between X1 and X3 but no prediction exists. In this model, Y1 and Y2 are dependent variables because they all have one-way arrows pointing to them, and X1, X2 and X3 are independent variables. Hence, the basic model is firstly built up in the following chunk, and then, we test the fitness of the model and show which parameters will be estimated. f
+
+```{r}
+# Basic Model
+model1 <- '
+# regressions
+Y1 ~ X1 + X2 + Y2
+Y2 ~ X1 + X3
+# residual covariance
+X1 ~~ X3
+'
+# Test progress
+fit1 <- lavaan::sem(model1,sample.nob = 320,sample.cov = advbasket_cov, fixed.x = F)
+```
+
+The hypotheses for this model are
+$$H_0 = the basic model is correct$$
+$$H_1 = the basic model is incorrect (more factors are needed)$$
+
+In oreder to test the hypotheses, there are several indices can be regarded as the criteria, such as GFI, AGFI, AIC and CFI. Specifically, GFI (goodness-of-fit index) indicates the proportion of the variances and covariances explained by the model, and the heuristic rule pronounces that if GFI > 0.95 the model fits the data. AGFI is an adjusted index based on GFI which is adjusted for degrees of freedom, and it is set that the index should larger than 0.9, the model can be claimed to fit the data. Moreover, AIC (Akaike's Information Criterion) estimates the quality of each model, and it is better to obatin a smaller AIC. Last, CFI (incremental fit indices) evaluates fit relative to baselinmodel with a formulation, which states that the model is more optimal than the baselinemodel if CFI is larger than 0.95. The following chunk analyzes model fitness through different criteria.
+
+```{r}
+# Analyze model fit
+summary(fit1,fit.measures=TRUE)
+
+# Build up a function about GFI
+GFI <- function(Si, Sobs){
+  if( class(Si) == "list"){
+    Si <- as.matrix(as.data.frame(Si$cov))
+  }
+  
+  nominator <- sum(diag(solve(Si) %*% Sobs - diag(ncol(Sobs))))^2
+  denominator <- sum(diag(solve(Si) %*% Sobs))^2
+  return(1 - (nominator / denominator))
+}
+Si1 <- as.matrix(as.data.frame(fitted(fit1)$cov))
+Si1 <- corReorder(R = Si1, vars = c(X1, X2, X3, Y1, Y2), heat.map = F)
+GFI(Si = Si1, Sobs = advbasket_cov)
+```
+
+In a conclusion, the GFI and comparatice CFI imply that the basic model fits the data well, and other indices except p-value do not have specific indication about how well does the model fit the data because there is only one model and no comparison. Therefore, we can not determine that the value of AIC, BIC and adjusted BIC is large or small. However, considering the overall p-value of Chi-square, this index recommends that we should reject $H_0$ due to the smaller value than 0.05, indicating that the $S^1$ cannot be assumed as equal as $S^{obs}$. This situation may be caused by a large sample size with 320 observations, as a small difference between $S^1$ and $S^{obs}$ is found to be significant if the number of observations is larger. Therefore, the $χ^2-test$ can not prove that the model is correct or not because it is very sensitive to sample size. Given the value of SRMR of 0.152, this may deonstrate a poor fit 
+
+As a result, we can conclude from the evaluation that the provided basic model fits the data.
+
+\section{5. Compare the results with alternative solutions}
+
+Given the value of SRMR of 0.152, this may deonstrate that the basic model has a poor fit on the data, so we tried to improve the path model structure. The other reason why we attempted to improve the model is that we realised that the standardized residual is not small enough, indicating the model is under-identified. 
+
+In order to find out how we can improve the model, 'modindices' function is conducted to determine which parameters should add and eliminate for improvement. The modification index (MI) and the standardized expected parameter change (SEPC) is two commonly used statistics for assisting selection on added parameters. 
+
+```{r}
+modindices(fit1)
+fitted(fit1)
+resid(fit1, type = "standardized")
+options(warn=-1)
+semPaths(fit1, "est",edge.label.cex = 2.0, cex=1.5, curvePivot = TRUE)
+```
+
+Based on the above modification results, we decided to adjust the basic model through adding correlations as below,
+$$X_2\sim\sim X_3$$
+$$X_1\sim\sim X_2$$
+
+Consequently, the improved model named 'model2' is shown as below,
+
+```{r}
+# Improved model model 2
+model2 <- '
+# regressions
+Y1 ~ X1 + X2 + Y2
+Y2 ~ X1 + X3
+# residual covariance
+X1 ~~ X3
+X1 ~~ X2
+X2 ~~ X3
+'
+# Test progress
+fit2 <- lavaan::sem(model2,sample.nob = 320,sample.cov = advbasket_cov, fixed.x = F)
+```
+
+The hypotheses for the improved model are
+$$H_0 = the improved model is correct$$
+$$H_1 = the improved model is incorrect (more factors are needed)$$
+
+```{r}
+# Analyze model fit
+summary(fit2,fit.measures=TRUE)
+
+# Build up a function about GFI
+Si2 <- as.matrix(as.data.frame(fitted(fit2)$cov))
+Si2 <- corReorder(R = Si2, vars = c(X1, X2, X3, Y1, Y2), heat.map = F)
+GFI(Si = Si2, Sobs = advbasket_cov)
+anova(fit1,fit2)
+```
+
+Based on the above resutls, it is clearly shown that there is almost no change on p-value and GFI, in contrast, the value of CFI on the improved model increases around 2% compared with the basic model and also there are improvements on AIC, BIC, Adjusted BIC, RMSEA and SRMR. Thus, we can conclude that the fit of the improved model is better than the basic model. However, due to no significant change on p-value, we attempt to implement a further improvement.
+
+```{r}
+modindices(fit2)
+fitted(fit2)
+resid(fit2, type = "standardized")
+options(warn=-1)
+semPaths(fit2, "est",edge.label.cex = 2.0, cex=1.5, curvePivot = TRUE)
+```
+
+Based on the above modification results, we decided to adjust the improved model2 through adding indicators on regressions as below,
+$$Y_2\sim X_1+X_2+X_3$$
+
+As a result, the further improved model named 'model3' is shown as below,
+
+```{r}
+# Improved model model 2
+model3 <- '
+# regressions
+Y1 ~ X1 + X2 + Y2
+Y2 ~ X1 + X2 + X3
+# residual covariance
+X1 ~~ X3
+X1 ~~ X2
+X2 ~~ X3
+'
+# Test progress
+fit3 <- lavaan::sem(model3,sample.nob = 320,sample.cov = advbasket_cov, fixed.x = F)
+```
+
+The hypotheses for the improved model are
+$$H_0 = the further improved model is correct$$
+$$H_1 = the further improved model is incorrect (more factors are needed)$$
+
+```{r}
+# Analyze model fit
+summary(fit3,fit.measures=TRUE)
+
+# Build up a function about GFI
+Si3 <- as.matrix(as.data.frame(fitted(fit3)$cov))
+Si3 <- corReorder(R = Si3, vars = c(X1, X2, X3, Y1, Y2), heat.map = F)
+GFI(Si = Si3, Sobs = advbasket_cov)
+anova(fit1,fit2,fit3)
+```
+
+Obviously, there is a significant increased on the main goodness-of-fit indices compared to the basic moddel (model1) and improved model (model2), so that we can conclude that the fit of further improved model (model3) is much better. However, there are well-performed statistics of the last improved model, we cannot ignore the overfitting problem of this model.
+
+\section{6. Conclusion}
+
+
