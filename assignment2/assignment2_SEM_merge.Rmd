@@ -8,9 +8,9 @@ output: pdf_document
 
 ```{r, message=FALSE, warning=FALSE}
 library(lavaan)
-library(semPlot)
+#library(semPlot)
 library(plotrix)
-library(tidyverse)
+#library(tidyverse)
 library(lessR)
 library(knitr)
 ```

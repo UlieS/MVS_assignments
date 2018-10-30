@@ -44,16 +44,14 @@ axis(2,at=4.5:0.5,labels=colnames(cov))
 
 \section{3. Assumptions}
 First, we assume multivariate normal distribution. When the maximum likelihood method is used the data is required to be multivariate normally distributed, as small changes in multivariate normality can lead to a large difference in the chi-square test.
-Additionally, equations must be greater than the estimated parameters or models should be over identified or exact identified. Under identified models are not considered.
-
-
-
+Additionally, equations must be greater than the estimated parameters or models should be over identified or exact identified. Under identified models are not considered.  
 
 
 \section{4. Method}
 The objective of structural equation models is to explain the covariances of the observed variables in terms of the relationships of these variables to the assumed underlying latent variables and the relationships pos-
-tulated between the latent variables themselves. SEM involves estimating a number of model parameters from the observed covariance matrix $S^{obs}$ to minimize the difference between this matrix and a matrix $S^i$ implied by the fitted model. The most commonly used method of estimation for SEM is maximum likelihood under the assumption that the observed data have a multivariate normal distribution. As all the variables in our dataset are measureable constructs, we will conduct a path analysis, which is essentially a SEM without latent factors. 
-First, we construct the hypothesized model in lavaan syntax and execute the sem function with a Maximum Likelihood estimation. There are other estimation procedures, but ML is the most efficient when the dataset is large, the data are multivariate normal distributed and the input is a covariance matrix. All these assumptions are satisfied for our task
+tulated between the latent variables themselves. SEM involves estimating a number of model parameters from the observed covariance matrix $S^{obs}$ to minimize the difference between this matrix and a matrix $S^i$ implied by the fitted model. The most commonly used method of estimation for SEM is maximum likelihood under the assumption that the observed data have a multivariate normal distribution. As all the variables in our dataset are measureable constructs, we will conduct a path analysis, which is essentially a SEM without latent factors. The hypothesized model includes mostly direct effects, but also an indirect effect of X3 on Y1.
+
+First, we construct the hypothesized model in lavaan syntax and execute the sem function with a Maximum Likelihood estimation. There are other estimation procedures, but ML is the most efficient when the dataset is large, the data are multivariate normal distributed and the input is a covariance matrix. All these assumptions are satisfied for our task.
 
 ```{r}
 model <- '
@@ -76,7 +74,7 @@ GFI <- function(Si, Sobs){
 }
 
 
-fit <- lavaan::sem(model,sample.nobs = 320,sample.cov=cov)
+fit <- lavaan::sem(model,sample.nobs = 320,sample.cov=cov, fixed.x=F)
 summary(fit, fit.measures=TRUE)
 #Si2 <- as.matrix(as.data.frame(fitted(fit)$cov))
 #Si2 <- corReorder(R = Si2, vars = c(X1, X2, X3, Y1, Y2), heat.map = F)
@@ -91,10 +89,12 @@ summary(fit, fit.measures=TRUE)
 
 
 \section{5. Interpretation}
-The Goodness-of-fit (GFI) value of 0.99 (>0.95) and Comparative Fit Index (CFI) 0.977 (>0.95)  imply that the data is a good fit. RMSEA....
-However, the overall p- value (0.000) of the Chi-Square test suggests to reject H0, indicating that we cannot assume $S^1$ and $S^{obs}$ to be equal. This test is very sensitive to sample size and given the large sample of 320 observations might be cause for this. We attach more weight to the GFI index, which represents the proportion of the variances and covariances explained by the model. CFI measures whether the model fits the data better than a more restricted baseline model and we therefore conclude, that the model fits the data. 
+
+The Goodness-of-fit (GFI) value of 0.99 (>0.95) and Comparative Fit Index (CFI) 0.977 (>0.95)  imply that the data is a good fit. Moreover, AIC (Akaike's Information Criterion) estimates the quality of each model, and it is better to obtain a smaller AIC. In our model it is at 3515.273, but this information is only useful when comparing it with a modified version of the model. The Standardized Root Mean Square Residual (SRMR) is defined as the standardized difference between the observed correlation and the predicted correlation and anything below 0.8 is considered a good fit, while we have a value of 0.152 in this model. 
+The overall p- value (0.000) of the Chi-Square test suggests to reject H0, indicating that we cannot assume $S^1$ and $S^{obs}$ to be equal. This test is very sensitive to sample size and given the large sample of 320 observations might be cause for this. We attach more weight to the GFI index, which represents the proportion of the variances and covariances explained by the model. CFI measures whether the model fits the data better than a more restricted baseline model and we therefore conclude, that the model fits the data. 
 
 Nevertheless, we attempted to improve the model by adjusting the hypothesized structure. We noticed, that the residual covariances of the model are not too small indicating that there are some related causes which have not been identified yet. This holds especially for X2 and Y2 and X3 and X2, and X1 and X2.
+
 
 ```{r}
 modindices(fit, sort=T)
@@ -103,21 +103,35 @@ resid(fit)$cov
 
 Modification indices state how model fit would change if you added new parameters to the model. We sorted the modification indices by mi which is an estimate of how much the model fit would improve if each parameter were added. 
 The first suggestion is a regression of Y1, "an average estimate of how many offensive plays the player was involved in, per game", on X2, "average number of assists per game". However, this would not make any sense, since X2 is a basic measurement that an advanced measure should not regress on. The suggested modifications do not take the logic behind the model into account, as SEM is not an exploratory technique, but rather used to validate a theoretically solid model. It is important to consider the overall objective of CFA is to confirm, not to explore, which is why following all modification indices can be dangerous, as it can lead to over-fitting the data and decreasing the generalizability of the results.
-(The GFI stays the same, Chi-Square p-value also, but smaller residuals, RMSEA and better CFI (.977, before .994))
 
 We adjusted the second modification suggestion and added a residual covariance between X1, "average points per
-game" and X3, "average number of assists per game". 
-This resulted in an improved CFI (0.983) but almost no change in all the other evaluation measures. The p-value still indicates a rejection of H0. 
-We then also added a covariance between X1 and X2 to the model which further improved the CFI (0.994) and also the RMSEA (0.15) decreased. The modified structure is visualized below.
-The remaining modification indices and residuals imply that further improvement could be yielded by adding the regression of X2 on Y2. Theoretically, this would again not make sense, because shooting efficiency (Y2) is not dependant on assists (X2).
-
+game" and X2, "average number of assists per game". 
+This resulted in an improved CFI (0.983) and an improved AIC (3502.237) and SRMR (0.131), but almost no change in all the other evaluation measures. The p-value still indicates a rejection of H0. 
+We then also added a covariance between X1 and X2 to the model which further improved the CFI (0.994) and also the RMSEA (0.15) and AIC (3475.934) decreased. The SRMR greatly decreased to a value of 0.021, surpassing the lower threshold of 0.8 which is considered to be an indicator of a good fit.
+The remaining modification indices and residuals imply that further improvement could be yielded by adding the regression of X2 on Y2. Theoretically, this would again not make sense, because shooting efficiency (Y2) is not dependant on assists (X2). The structure is visualized below.
 
 
 ```{r}
-# one of our modified models 
-model <- '
+model2 <- '
 # regressions
-Y1 ~ X1 + X2 + Y2 
+Y1 ~ X1 + X2 + Y2
+Y2 ~ X1 + X3
+# residual covariance
+X1 ~~ X3
+X2 ~~ X3
+X1 ~~ X2
+'
+
+fit2 <- lavaan::sem(model2,sample.nobs = 320,sample.cov=cov)
+#semPaths(fit2, "std",edge.label.cex = 2.0, cex=1.5, curvePivot = TRUE)
+#summary(fit2, fit.measures=T)
+```
+It is also possible, to identify relationships, which are not needed. "Shot attempts" (X3) has an indirect effect on "offensive plays" (Y1) through "shooting efficiency" (Y2). As Y1 is already regressed on by one of the variables determining shooting efficiency (X1), and deleting the regression of Y2 on Y1 did not indicate a large drop in Chi-Square from the modification indices, we tested a model with a direct link between X3 and Y1 and no regression of Y2 on Y1. This model had slightly improved statistical measures (AIC= 3472.458, p-value= 0.001,  , GIF and SMRS stayed equal) in comparison to the previous 'model2'.  
+
+```{r}
+model3 <- '
+# regressions
+Y1 ~ X1 + X2 + X3
 Y2 ~ X1 + X3 
 # residual covariance
 X1 ~~ X3
@@ -125,16 +139,31 @@ X2 ~~ X3
 X1 ~~ X2
 '
 
-fit2 <- lavaan::sem(model,sample.nobs = 320,sample.cov=cov)
+fit3 <- lavaan::sem(model3,sample.nobs = 320,sample.cov=cov)
 #semPaths(fit2, "std",edge.label.cex = 2.0, cex=1.5, curvePivot = TRUE)
+#summary(fit3, fit.measures=T)
+Si2 <- as.matrix(as.data.frame(fitted(fit3)$cov))
+Si2 <- corReorder(R = Si2, vars = c(X1, X2, X3, Y1, Y2), heat.map = F)
+GFI(Si = Si2, Sobs = cov)
 
 ```
 
-In our attempt at improving the model, we incrementally added variables, as described before and yielded another model, as seen below, which achieves the statistically best values, with a p-value of 0.019, CFI of 0.998, RMSEA of 0.118 and GFI of 0.999. However, we do not consider the structure useful, as it makes the model overly complex. 
+
+We conducted an anova to compare the modified models which confirmed the significant improvement of 'model3' over 'model2'.
+
+```{r}
+anova(fit3,fit2)
+```
+
+
+
+\section{6. Alternatives}
+
+In our attempt at improving the model, we incrementally added variables, as described before and yielded another model, as seen below, which achieves the statistically best values, with a p-value of 0.019, CFI of 0.998, RMSEA of 0.118, AIC of 3467.0 and GFI of 0.999. However, we do not consider the structure useful, as it makes the model overly complex. It also introduces a regression of "number of assists" (X2) on "shooting efficiency" (Y2) which is not logically consistent. We therefore discarded this modification.
 
 ```{r}
 
-model <- '
+model3 <- '
 # regressions
 Y1 ~ X1 + X2 + Y2 
 Y2 ~ X1 + X3 + X2
@@ -143,14 +172,14 @@ X1 ~~ X3
 X2 ~~ X3
 X1 ~~ X2
 '
-fit3 <- lavaan::sem(model,sample.nobs = 320,sample.cov=cov)
+fit3 <- lavaan::sem(model3,sample.nobs = 320,sample.cov=cov)
 #semPaths(fit3, "std",edge.label.cex = 2.0, cex=1.5, curvePivot = TRUE)
-anova(fit,fit3)
+
 ```
 
 
 \section{Conclusion}
 We evaluated the fit of a path model consisting of manifest variables using different criteria and concluded that the model is a good representation of the data. We attempted to improve the model and assessed multiple structural changes. 
-We compared the different fit of both proposed models using an anova, which revealed that both modifications fit the data significantly better than the base model given in the task. Theoretically speaking, however, the second improved model included some discrepancies, as shooting efficiency is not dependent on the number of assists. 
+We compared the fit of the improved models with the given model using and with each other, which revealed that 'model3' fits the data best, while keeping the theoretical fundamentals intact.  
 
 
