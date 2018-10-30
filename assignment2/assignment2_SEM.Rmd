@@ -197,3 +197,10 @@ We compared the fit of the improved models with each other, which revealed that 
 ```{r}
 summary(fit, fit.measures=TRUE)
 ```
+\newpage
+```{r}
+
+summary(fit2, fit.measures=TRUE)
+summary(fit3, fit.measures=TRUE)
+summary(fit4, fit.measures=TRUE)
+```
