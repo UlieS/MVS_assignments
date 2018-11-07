@@ -1,0 +1,41 @@
+---
+title: "Assignment X: Task XXX - XXX"
+author: "Group 11"
+date: "DATE"
+output: pdf_document
+---
+\section{0. Load Libraries}
+
+
+\section{1. Problem Statement}
+
+\section{2. Descriptive Statistics}
+
+
+\section{3. Assumptions}
+
+
+\section{4. Method and interpretation}
+
+\section{5. Alternative solutions}
+
+\section{6. Conclusion}
+
+\newpage
+\section{Appendix}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
