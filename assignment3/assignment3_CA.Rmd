@@ -98,7 +98,7 @@ sapply(colnames(hclust_cutree), function(m) plot(silhouette(hclust_cutree[,m],
 par(mfrow = c(1,1))
 ```
 
-The silhouette plots show that the single linkage and centroid method cluster 69 in one cluster, which is basically no gain in information. The remaining models are better interpretalbe, as the relative frequency in the second cluster is higher. Nonetheless, silhouette scores of bigger than 0.4 are rare in each method, meaning that most of the observations are close to be intermediate cases. Therefore one might try to use non-hierarchical methods using input values from hierarchical methods to come to a better solution.
+The silhouette plots show that the single linkage and centroid method cluster 69 in one cluster, which is a result of the chaining effect and gives basically no gain in information. The remaining models are better interpretalbe, as the relative frequency in the second cluster is higher. Nonetheless, silhouette scores of bigger than 0.4 are rare in each method, meaning that most of the observations are close to be intermediate cases. Therefore one might try to use non-hierarchical methods using input values from hierarchical methods to come to a better solution.
 
 \subsection{4.2 Non-Hierarchical and Model Based Methods}
 
@@ -129,7 +129,7 @@ lapply(seq(1:length(clus_kmeans)),
                         main = pnames[m]))
 
 ```
-First of all each method clusters approximataly the same observations in each cluster. Other than that the silhouette plots of k-Means with Ward and average linkage seeding seem to be the best cluster solutions. This can also be validated when comparing the average silhouette width. K-Means with complete seeding performs bad in specifying the second cluster, whereas the remaining methods have difficulties in specifying the first cluster. 
+First of all each method clusters approximataly the same observations in each cluster. Other than that the silhouette plots of k-Means with Ward and average linkage seeding seem to be the best k-Means cluster solutions. This can also be validated when comparing the average silhouette width. K-Means with complete seeding performs bad in specifying the second cluster, whereas the remaining methods have difficulties in specifying the first cluster. 
 
 \section{5. Alternative solutions}
 
