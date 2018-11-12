@@ -2,7 +2,7 @@
 title: "Assignment 3: Task 1 - Cluster Analysis"
 author: "Group 11"
 date: "DATE"
-output: pdf_document
+output: pdf_document 
 ---
 
 ```{r, warning = F, message = F, echo = F}
@@ -14,29 +14,22 @@ library(MASS)
 library(fpc)
 library(mclust)
 library(class)
+library(diceR)
 ```
 
 \section{1. Problem Statement}
 The presented data contains students' enrolment activites for 72 universities (observations), which is further subdivided into 13 faculties (variables). The task is to perform several cluster methods in order to identify for which universites students have a similar enrolment behavior. The analysis starts with some descriptive statistics, followed by a short comment regarding the assumtions. Afterwards hierarchical methods as well as non-hierarchical methods and others are applied. Finally, a conclusion regarding the best performing clustering method is made.
 
 \section{2. Descriptive Statistics}
-```{r, echo = F}
-# Set working directory
-setwd("C:/Users/johnv/OneDrive/01_Uni/00_Master Studies/3. Semester (KU Leuven)/Multivariate Statistics/Assignment 3")
-```
-
-
 ```{r, warning = F, message = F}
-# Load data
-unistudis <- as.tibble(read.table("unistudis.txt", header=T))
+unistudis <- as.tibble(read.table("../data/unistudis.txt", header=T))
 
-# Descriptive statistics
 descr(unistudis[,-length(unistudis)], style = "rmarkdown", 
       stats = c("mean", "sd", "min", "q1", "med", "q3", "max", "pct.valid"))
 ```
 First of all there are no missing values in the data, which is seen in the Pct.Valid row. Other than that the variables seem to differ in terms of mean and spread. FEB, FSS, FA, FPES, FKRS and FCL have relatively high mean values compared to the remaining ones. This means that students of the explicitly mentioned facultes on average enrl more frequently into language coureses. In terms of standard deviations FEB, FSS, FA, FPES, FKRS, FET, FCL and FS seem to have a high spread compared to the other faculties. So for these faculties students enrolment behavior differs strongly from university to university, whereas for other faculties it doesn't. 
 
-```{r, warning = F, message = F}
+```{r, warning = F, message = F, fig4, out.width = '50%'}
 # Detecting Outliers
 melt(unistudis[,-length(unistudis)]) %>% ggplot(aes(x = variable, y = value)) +
   geom_boxplot() +
@@ -112,7 +105,6 @@ std_unistudis_EXT <- as.tibble(cbind(std_unistudis[,-1], hclust_cutree))
 initials <- lapply(hclust_methods, 
                    function(m) aggregate(std_unistudis[,-1], 
                                          list(as.vector(t(std_unistudis_EXT[,m]))), mean))
-
 # k-Means with initials
 clus_kmeans <- lapply(seq(1:length(hclust_methods)), 
                       function(m) kmeans(std_unistudis[,-1], centers = initials[[m]][,-1]))
@@ -127,35 +119,58 @@ pnames <- paste("k-Means:", c(hclust_methods, "random"))
 lapply(seq(1:length(clus_kmeans)), 
        function(m) plot(silhouette(clus_kmeans[[m]]$cluster, dist_unistudis), 
                         main = pnames[m]))
-
 ```
 First of all each method clusters approximataly the same observations in each cluster. Other than that the silhouette plots of k-Means with Ward and average linkage seeding seem to be the best k-Means cluster solutions. This can also be validated when comparing the average silhouette width. K-Means with complete seeding performs bad in specifying the second cluster, whereas the remaining methods have difficulties in specifying the first cluster. 
 
 \section{5. Alternative solutions}
 
-```{r}
+```{r out.width = '50%'}
 # k-Mediods (Partitioning Around Mediods)
-clus_pam <- pam(std_unistudis[,-1], noclust)
+unistudis_all <- as.tibble(read.table("../data/unistudis.txt", header=T))
+std_unistudis_all <- as.tibble(unistudis_all[,1:ncol(unistudis_all)-1] %>% scale(center = T, scale = T))
+std_unistudis_all <- std_unistudis_all %>% mutate(uniID = unistudis_all$uniID) %>% dplyr::select(uniID, 1:13)
+dist_unistudis_all <- dist(std_unistudis_all[,-1])
+
+clus_pam <- pam(std_unistudis_all[,-1], noclust)
 
 # Model based clustering (selection based on BIC)
 clus_mod <- Mclust(std_unistudis[,-1], G = 2:9)
 
 par(mfrow = c(1,2))
-plot(silhouette(clus_pam$cluster, dist_unistudis))
+plot(silhouette(clus_pam$cluster, dist_unistudis_all))
 plot(silhouette(clus_mod$classification, dist_unistudis))
 
 # Cluster ensemble
+CC <- consensus_cluster(std_unistudis, nk = 2:4, p.item = 0.8, reps = 5,
+                        algorithms = c( "pam", "diana", "hc", "gmm"))
 
-
+pam.2 <- CC[, , "PAM_Euclidean", "2", drop = FALSE]
+cm <- consensus_matrix(pam.2)
+hm <- graph_heatmap(pam.2)
+ccomp <- consensus_evaluate(std_unistudis, CC, plot = FALSE)
 ```
- 
+Additionally, Partitioning Around Mediods (PAM) and model-based clustering was explored. PAM is supposed to be less sensitive to outliers compared to k-means, which is why we applied it to the full dataset. The silhouette plot did not show a homogenous within cluster structure. Another approach includes the model-based clustering which tries to estimate the distribution of cluster segments and maximize the probability that a sample comes from one distribution. This is also called soft partitioning, while the other approaches followed hard partitioning.
+We also explored ensemble methods as way of directly comparing different algorithms and cluster sizes. Specifically, we compared PAM and two hierarchical clustering methods, DIANA, HC and one model-based approach, GMM. DIANA is a divisive clustering algorithm while HC takes an agglomarative approach. In 5 rounds of applying each algorithm to bootstrapped subsamples of the data a consensus within the cluster assignment is reached. This can be visualized per algorithm and cluster size in a NxN Consensus Matrix, with N = \# samples. The matrix values are within a $[0,1]$ boundary with 1 indicating agreement across all iterations of sample assignment. The heatmap output is enclosed in the appendix. It showed high agreement within DIANA and PAM, especially for cluster size = 2. This means, that the clustering solution is unambigious. This takes a different approach in evaluation, as we are not considering the silhouette plot width but instead the agreement within an algorithm in regard of the cluster assignment. 
+
+The evaluation with respect to compactness and seperability (see appendix) shows that the algorithms produce equally compact clusters but DIANA and PAM generate solutions which are more separable. This analysis supports our previously chosen solution of two clusters. The model based approach seems to be not optimal for this task, as it generates clusters very different from the other algorithms. This might be caused by the strong assumptions of an underlying gaussian distribution of each cluster is not satisfied. 
 
 \section{6. Conclusion}
+The performed cluster analysis consisted of the comparison of different hierarchical approaches and their dendogram and silhouette plots. The results were fed into k-means and k-mediods as one of several methods for initializing the cluster seeds. Additionally, model based and ensemble methods were explored. The best solution in terms of within cluster connectivity, consensus of the algorithm and silhouette plots was achieved by the k-means method using two clusters and initial seeds from the prior hierarchical solution.
+
 
 \newpage
 \section{Appendix}
+```{r}
+ccomp$ii
 
 
+diana.2 <- CC[, , "DIANA_Euclidean", "2", drop = FALSE]
+hc.2 <- CC[, , "HC_Euclidean", "2", drop = FALSE]
+gmm.2 <- CC[, , "GMM", "2", drop = FALSE]
+hm.1 <- graph_heatmap(hc.2)
+hm.2 <- graph_heatmap(diana.2)
+gmm.2 <- graph_heatmap(gmm.2)
+```
 
 
 
